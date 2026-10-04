@@ -10,6 +10,8 @@ import type { OutcomeRow } from "@/lib/db/types";
 import { compareWithBaselines, COMPARISON_LABELS } from "@/lib/analytics/baselines";
 import type { EvaluableItem } from "@/lib/evaluation/evaluate";
 import { todayIn } from "@/lib/time/zoned";
+import { loadKpiInput } from "@/lib/db/kpi-input";
+import { computeKpis, type Ratio } from "@/lib/analytics/kpi";
 
 export default async function InsightsPage() {
   const { supabase } = await requireUser();
@@ -21,6 +23,8 @@ export default async function InsightsPage() {
     supabase.from("baseline_items").select("model_item_id, baseline, theme, event_type, direction, magnitude, start_date, end_date"),
     supabase.from("birth_profiles").select("time_zone").maybeSingle(),
   ]);
+  const today = todayIn(profile?.time_zone ?? "Asia/Tokyo");
+  const kpi = computeKpis(await loadKpiInput(supabase), today);
 
   // ベースラインと比べるのは、ベースラインが作られている予測項目だけ (導入前の予測は対象外)
   const withBaseline = new Set((baselineItems ?? []).map((b) => b.model_item_id));
@@ -31,7 +35,7 @@ export default async function InsightsPage() {
       prior: (baselineItems ?? []).filter((b) => b.baseline === "prior") as EvaluableItem[],
     },
     (outcomes ?? []) as OutcomeRow[],
-    todayIn(profile?.time_zone ?? "Asia/Tokyo"),
+    today,
   );
 
   const cells = byMethodThemeHorizon(rows);
@@ -44,6 +48,54 @@ export default async function InsightsPage() {
   return (
     <div className="space-y-6">
       <PageTitle sub="過去の予測が現実とどの程度一致したかの記録です。将来の的中を保証するものではありません。">実績</PageTitle>
+
+      <Card className="space-y-4">
+        <h2 className="font-bold">検証の進み具合</h2>
+        <dl className="grid gap-3 text-sm sm:grid-cols-3">
+          <RatioStat label="答え合わせ率" r={kpi.verification_rate} hint="確認時期が来た予測項目のうち回答済み" />
+          <RatioStat label="評価カバレッジ" r={kpi.evaluation_coverage} hint="期間が終わった予測項目のうち評価済み" />
+          <RatioStat label="リマインドへの回答" r={kpi.check_in_rate} hint="期日が来た答え合わせのうち完了" />
+          <RatioStat label="再予測" r={kpi.reforecast_rate} hint="以前の予測をもとに作り直した予測の割合" />
+          <RatioStat label="過去の予測の参照" r={kpi.reference_rate} hint="作成から1日以上経ってから開いた予測の割合" />
+          <RatioStat label="継続 (直近6か月)" r={kpi.active_months} hint="予測・記録・答え合わせをした月" />
+        </dl>
+        <div>
+          <h3 className="mb-1 text-sm font-bold">予測性能の推移 (予測を作った四半期ごと)</h3>
+          {kpi.trend.quarters.length === 0 ? (
+            <p className="text-sm text-muted">まだ評価済みの予測がありません。</p>
+          ) : (
+            <ul className="space-y-1 text-sm">
+              {kpi.trend.quarters.map((q) => (
+                <li key={q.quarter}>
+                  {q.quarter}: {q.level === "insufficient" ? `データ不足 (${q.n}件)` : `出来事が一致・類似 ${pct(q.event_match_rate)} (${q.n}件)`}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-1 text-xs text-muted">
+            {
+              {
+                improved: "直近の四半期は、前の四半期より一致の割合が高くなっています (参考値)。",
+                declined: "直近の四半期は、前の四半期より一致の割合が低くなっています (参考値)。",
+                flat: "直近 2 四半期で一致の割合に大きな差はありません (参考値)。",
+                insufficient: "改善しているかの判断には、評価が 10 件以上ある四半期が 2 つ必要です。",
+              }[kpi.trend.direction]
+            }
+          </p>
+        </div>
+        <div>
+          <h3 className="mb-1 text-sm font-bold">月ごとの利用</h3>
+          <ul className="grid grid-cols-3 gap-1 text-xs sm:grid-cols-6">
+            {kpi.monthly.map((m) => (
+              <li key={m.month} className="rounded-md bg-background p-2">
+                <p className="text-muted">{m.month}</p>
+                <p>予測 {m.predictions}</p>
+                <p>出来事 {m.outcomes}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Card>
 
       <Card className="text-sm">
         評価済みの予測項目: 出来事を紐付けて確認したもの <b>{confirmedCount}</b> 件 ／ 紐付けのない「曖昧」{ambiguousCount} 件
@@ -181,6 +233,17 @@ export default async function InsightsPage() {
           </ul>
         )}
       </Card>
+    </div>
+  );
+}
+
+function RatioStat({ label, r, hint }: { label: string; r: Ratio; hint: string }) {
+  return (
+    <div title={hint}>
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd>
+        {pct(r.rate)} <span className="text-xs text-muted">({r.numerator}/{r.denominator})</span>
+      </dd>
     </div>
   );
 }

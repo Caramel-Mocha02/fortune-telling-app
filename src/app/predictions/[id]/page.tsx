@@ -37,6 +37,8 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
     supabase.from("check_ins").select("*").eq("prediction_id", id).order("due_on"),
     supabase.from("prediction_snapshots").select("payload->routing, payload->engine_results, payload_sha256").eq("prediction_id", id).single(),
     themePerformance(supabase),
+    // 過去予測参照率 (仕様 56) のための閲覧記録。失敗してもページ表示は続ける
+    supabase.from("prediction_views").insert({ prediction_id: id }).then(() => null),
   ]);
   const items = (itemRows ?? []) as PredictionItemRow[];
   const checkIns = (checkInRows ?? []) as CheckInRow[];
