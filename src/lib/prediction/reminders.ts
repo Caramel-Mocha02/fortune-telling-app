@@ -33,3 +33,13 @@ export function stalePredictions(input: ReminderInput, today: string, limit = 3)
     .sort((a, b) => (a.last_answered_at ?? a.created_at).localeCompare(b.last_answered_at ?? b.created_at))
     .slice(0, limit);
 }
+
+/** 手相の再登録の目安 (仕様 4.8: 定期的に登録して状態の変化を比べる) */
+export const PALM_REFRESH_DAYS = 90;
+
+/** 最後の登録から PALM_REFRESH_DAYS 日以上経っていれば経過日数を返す。未登録なら案内しない */
+export function palmRefreshDue(latestCapturedOn: string | null, today: string): number | null {
+  if (!latestCapturedOn) return null;
+  const days = Math.floor((parseIsoDate(today).getTime() - parseIsoDate(latestCapturedOn).getTime()) / 86400000);
+  return days >= PALM_REFRESH_DAYS ? days : null;
+}

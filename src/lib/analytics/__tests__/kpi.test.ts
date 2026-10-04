@@ -153,3 +153,13 @@ describe("定期的な確認 (仕様 25)", () => {
     expect(r).toEqual([]);
   });
 });
+
+import { palmRefreshDue } from "@/lib/prediction/reminders";
+
+describe("手相の再登録の案内 (仕様 4.8)", () => {
+  it("未登録なら案内しない。90 日以上経てば経過日数を返す", () => {
+    expect(palmRefreshDue(null, "2027-01-01")).toBeNull();
+    expect(palmRefreshDue("2026-10-05", "2027-01-02")).toBeNull(); // 89 日
+    expect(palmRefreshDue("2026-10-05", "2027-01-03")).toBe(90);
+  });
+});

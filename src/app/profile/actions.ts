@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/supabase/server";
 import { isValidTimeZone } from "@/lib/time/zoned";
+import { PALM_BUCKET } from "@/lib/supabase/buckets";
 
 const optionalNumber = (min: number, max: number) =>
   z.preprocess((v) => (v === "" || v === null ? null : Number(v)), z.number().min(min).max(max).nullable());
@@ -46,4 +47,30 @@ export async function saveProfile(_prev: ProfileState, formData: FormData): Prom
   if (error) return { error: `保存に失敗しました: ${error.message}` };
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+export interface DeleteState {
+  error?: string;
+}
+
+/** アカウント削除: 手相画像を消してから、本人のデータとアカウントを削除する */
+export async function deleteAccount(_prev: DeleteState, formData: FormData): Promise<DeleteState> {
+  const { supabase, userId } = await requireUser();
+  if (formData.get("confirm") !== "削除") return { error: "確認のため「削除」と入力してください" };
+
+  // 手相画像 (Storage) は SQL から消せないため、先に Storage API で削除する
+  const bucket = supabase.storage.from(PALM_BUCKET);
+  for (;;) {
+    const { data: files, error } = await bucket.list(userId, { limit: 100 });
+    if (error) return { error: `手相画像の削除に失敗しました: ${error.message}` };
+    if (!files || files.length === 0) break;
+    const { error: removeError } = await bucket.remove(files.map((f) => `${userId}/${f.name}`));
+    if (removeError) return { error: `手相画像の削除に失敗しました: ${removeError.message}` };
+  }
+
+  const { error } = await supabase.rpc("delete_my_account");
+  if (error) return { error: `アカウントの削除に失敗しました: ${error.message}` };
+
+  await supabase.auth.signOut().catch(() => undefined);
+  redirect("/login?deleted=1");
 }

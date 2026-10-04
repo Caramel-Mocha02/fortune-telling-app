@@ -6,7 +6,7 @@ import { todayIn } from "@/lib/time/zoned";
 import type { CheckInRow } from "@/lib/db/types";
 import { loadKpiInput } from "@/lib/db/kpi-input";
 import { computeKpis } from "@/lib/analytics/kpi";
-import { stalePredictions } from "@/lib/prediction/reminders";
+import { palmRefreshDue, stalePredictions } from "@/lib/prediction/reminders";
 
 export default async function HomePage() {
   const { supabase } = await requireUser();
@@ -27,14 +27,16 @@ export default async function HomePage() {
   }
 
   const today = todayIn(profile.time_zone);
-  const [{ data: due }, { data: open }, { data: items }, { data: feedback }, kpiInput, { data: recentRows }] = await Promise.all([
+  const [{ data: due }, { data: open }, { data: items }, { data: feedback }, kpiInput, { data: recentRows }, { data: latestPalm }] = await Promise.all([
     supabase.from("check_ins").select("*, predictions(summary)").is("completed_at", null).lte("due_on", today).order("due_on"),
     supabase.from("predictions").select("id, created_at, prediction_period_start, status, summary").eq("status", "open"),
     supabase.from("prediction_items").select("id, prediction_id"),
     supabase.from("feedback").select("prediction_item_id, created_at"),
     loadKpiInput(supabase),
     supabase.from("predictions").select("id, created_at, summary").order("created_at", { ascending: false }).limit(5),
+    supabase.from("palm_readings").select("captured_on").order("captured_on", { ascending: false }).limit(1).maybeSingle(),
   ]);
+  const palmDays = palmRefreshDue(latestPalm?.captured_on ?? null, today);
   const dueRows = (due ?? []) as Array<CheckInRow & { predictions: { summary: string } | null }>;
   const stale = stalePredictions(
     {
@@ -84,6 +86,15 @@ export default async function HomePage() {
               </li>
             ))}
           </ul>
+        </Card>
+      )}
+
+      {palmDays !== null && (
+        <Card className="text-sm">
+          前回の手相の登録から {palmDays} 日経ちました。同じ条件で撮り直すと、線の状態の変化を比べられます。{" "}
+          <Link href="/palm" className="text-accent underline">
+            手相を登録する
+          </Link>
         </Card>
       )}
 
