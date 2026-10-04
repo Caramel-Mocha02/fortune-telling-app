@@ -48,6 +48,7 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
     | EngineResult<TarotData>
     | undefined;
   const sensitive = (question?.classification as { sensitive_domain?: string } | null)?.sensitive_domain;
+  const clarification = (question?.classification as { clarification?: { question?: string; answer?: string } } | null)?.clarification;
 
   // 仕様 41: 以前の似た質問
   const { data: similar } = await supabase
@@ -71,6 +72,11 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
       <Card className="space-y-3">
         <p className="text-sm text-muted">質問</p>
         <p>{question?.text}</p>
+        {clarification?.question && clarification.answer && (
+          <p className="text-sm text-muted">
+            確認: {clarification.question} ／ 回答: {clarification.answer}
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <Badge tone="accent">{QUESTION_CATEGORY_LABELS[p.category as QuestionCategory] ?? p.category}</Badge>
           {p.methods.map((m) => (

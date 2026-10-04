@@ -27,14 +27,21 @@ export async function POST(request: NextRequest) {
     async start(controller) {
       const send = (event: PredictionEvent) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       try {
-        const id = await generatePrediction(supabase, {
+        const result = await generatePrediction(supabase, {
           questionText: parsed.data.question,
           requestedMonths: parsed.data.months,
           parentPredictionId: parsed.data.parent,
+          questionId: parsed.data.question_id ?? null,
+          clarificationAnswer: parsed.data.clarification_answer ?? null,
+          skipClarification: parsed.data.skip_clarification ?? false,
           onStage: (stage) => send({ type: "stage", stage }),
         });
-        revalidatePath("/");
-        send({ type: "done", id });
+        if (result.type === "clarify") {
+          send({ type: "clarify", question_id: result.questionId, question: result.question, options: result.options });
+        } else {
+          revalidatePath("/");
+          send({ type: "done", id: result.id });
+        }
       } catch (error) {
         if (!(error instanceof AiError || error instanceof PredictionError)) console.error(error);
         send({

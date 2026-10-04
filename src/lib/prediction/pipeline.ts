@@ -32,6 +32,12 @@ export type PredictionStage = (typeof PREDICTION_STAGES)[number];
 
 export interface GenerateInput {
   questionText: string;
+  /** 確認の質問に答えて再送するとき、最初に保存した質問の ID */
+  questionId?: string | null;
+  /** 確認の質問への回答 */
+  clarificationAnswer?: string | null;
+  /** 確認の質問を飛ばしてそのまま予測する */
+  skipClarification?: boolean;
   /** null なら質問内容と分類から自動決定 */
   requestedMonths: number | null;
   parentPredictionId: string | null;
@@ -39,7 +45,16 @@ export interface GenerateInput {
   onStage?: (stage: PredictionStage) => void;
 }
 
-export async function generatePrediction(supabase: Supabase, input: GenerateInput): Promise<string> {
+export type GenerateResult =
+  | { type: "done"; id: string }
+  | { type: "clarify"; questionId: string; question: string; options: string[] };
+
+/** 質問と、確認の質問・回答をまとめた、分類と解釈に渡す文章 */
+export function questionWithClarification(question: string, clarification: { question: string; answer: string } | null): string {
+  return clarification ? `${question}\n\n(確認: ${clarification.question})\n回答: ${clarification.answer}` : question;
+}
+
+export async function generatePrediction(supabase: Supabase, input: GenerateInput): Promise<GenerateResult> {
   // 1. 基礎データ
   const { data: profileRow, error: profileError } = await supabase.from("birth_profiles").select("*").maybeSingle();
   if (profileError) throw new PredictionError(`プロフィールの取得に失敗しました: ${profileError.message}`);
@@ -49,22 +64,50 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
 
   const stage = (st: PredictionStage) => input.onStage?.(st);
 
-  // 2. 質問を保存 (予測に失敗しても質問履歴は残す)
+  // 2. 質問を保存 (予測に失敗しても質問履歴は残す)。確認への回答で再送された場合は最初の質問を使う
   stage("question");
-  const { data: question, error: qError } = await supabase
-    .from("questions")
-    .insert({ text: input.questionText })
-    .select("id")
-    .single();
-  if (qError) throw new PredictionError(`質問の保存に失敗しました: ${qError.message}`);
+  let question: { id: string; text: string; classification: Record<string, unknown> | null };
+  if (input.questionId) {
+    const { data, error } = await supabase.from("questions").select("id, text, classification").eq("id", input.questionId).maybeSingle();
+    if (error || !data) throw new PredictionError("確認中の質問が見つかりませんでした。もう一度質問してください。");
+    question = data;
+  } else {
+    const { data, error } = await supabase.from("questions").insert({ text: input.questionText }).select("id, text, classification").single();
+    if (error) throw new PredictionError(`質問の保存に失敗しました: ${error.message}`);
+    question = data;
+  }
+
+  // 確認の質問 (仕様 8: ユーザーへの質問) とその回答
+  const asked = (question.classification?.clarification ?? null) as { question?: string | null } | null;
+  const answer = input.clarificationAnswer?.trim() || null;
+  const clarification = asked?.question && answer ? { question: asked.question, answer } : null;
+  const alreadyAsked = Boolean(input.questionId);
+  const questionText = questionWithClarification(question.text, clarification);
 
   // 3. 分類
   stage("classify");
-  const { output: classification, model: classifyModel } = await classifyQuestion(input.questionText, today);
+  const { output: classification, model: classifyModel } = await classifyQuestion(questionText, today, !alreadyAsked && !input.skipClarification);
+  const stored = {
+    ...classification,
+    clarification: clarification
+      ? { ...clarification, needed: false }
+      : alreadyAsked || input.skipClarification
+        ? { ...(asked ?? {}), needed: false, skipped: true }
+        : classification.clarification,
+  };
   await supabase
     .from("questions")
-    .update({ category: classification.category, themes: classification.themes, classification })
+    .update({ category: classification.category, themes: classification.themes, classification: stored })
     .eq("id", question.id);
+
+  if (classification.clarification.needed && classification.clarification.question) {
+    return {
+      type: "clarify",
+      questionId: question.id,
+      question: classification.clarification.question,
+      options: classification.clarification.options.slice(0, 4),
+    };
+  }
 
   // 4. 期間とルーティング
   const months = resolvePeriodMonths(classification.category, input.requestedMonths, classification.suggested_horizon_months);
@@ -96,7 +139,7 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
   // 7. 解釈
   stage("interpret");
   const { output: forecast, model: interpretModel } = await interpret({
-    question: input.questionText,
+    question: questionText,
     category: classification.category,
     today,
     period,
@@ -132,7 +175,7 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
     schema: "prediction_snapshot_v3",
     created_at: new Date().toISOString(),
     today,
-    user_input: { question: input.questionText, requested_months: input.requestedMonths },
+    user_input: { question: question.text, clarification, requested_months: input.requestedMonths },
     birth_data: birth,
     classification,
     period,
@@ -180,5 +223,5 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
     },
   });
   if (saveError) throw new PredictionError(`予測の保存に失敗しました: ${saveError.message}`);
-  return predictionId as string;
+  return { type: "done", id: predictionId as string };
 }

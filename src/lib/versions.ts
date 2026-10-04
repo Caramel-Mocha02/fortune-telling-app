@@ -24,7 +24,7 @@ export { PALMISTRY_ENGINE_VERSION } from "@/lib/divination/palmistry/engine";
 export const PREDICTION_MODEL_VERSION = "prediction_model_v4";
 
 export const PROMPT_VERSIONS = {
-  classify: "classify_v1",
+  classify: "classify_v2",
   interpret: "interpret_v4",
   structureEvent: "structure_event_v1",
   observePalm: "observe_palm_v1",
