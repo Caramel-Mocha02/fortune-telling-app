@@ -9,6 +9,8 @@ const LINKS = [
   { href: "/predictions", label: "タイムライン" },
   { href: "/log", label: "ライフログ" },
   { href: "/palm", label: "手相" },
+  { href: "/insights", label: "実績" },
+  { href: "/reviews", label: "レビュー" },
   { href: "/profile", label: "プロフィール" },
 ];
 

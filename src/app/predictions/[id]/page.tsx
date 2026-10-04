@@ -78,9 +78,16 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
           ))}
           {p.status === "closed" && <Badge>答え合わせ完了</Badge>}
         </div>
+        {routing?.personalization && (
+          <p className="text-xs text-muted">
+            {routing.personalization.applied
+              ? `過去の実績 (${THEME_LABELS[routing.personalization.theme]}) を占術の選択に反映しました。${routing.personalization.changes.join(" ／ ")}`
+              : `${THEME_LABELS[routing.personalization.theme]}についての個人の実績がまだ少ないため、標準のルールで占術を選んでいます。`}
+          </p>
+        )}
         {routing && routing.skipped.length > 0 && (
           <p className="text-xs text-muted">
-            ルール上は {routing.skipped.map((s) => METHODS[s.method].label).join("・")} も対象ですが、未実装のため今回は使っていません。
+            今回使わなかった占術: {routing.skipped.map((s) => `${METHODS[s.method].label} (${s.reason})`).join("・")}
           </p>
         )}
       </Card>

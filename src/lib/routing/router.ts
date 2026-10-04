@@ -6,6 +6,7 @@
 import type { QuestionCategory } from "@/lib/domain/taxonomy";
 import type { MethodId } from "@/lib/divination/types";
 import { isImplemented, METHODS } from "@/lib/divination/registry";
+import type { Personalization } from "./personalize";
 
 export const ROUTING_VERSION = "routing_v1";
 
@@ -38,6 +39,8 @@ export interface RoutingDecision {
   secondary: MethodId[];
   /** ルール上は選ばれたが未実装などで使わなかった占術 */
   skipped: Array<{ method: MethodId; role: "primary" | "secondary"; reason: string }>;
+  /** 個人別ルーティング (routing_v2) で付与される */
+  personalization?: Personalization;
 }
 
 /**

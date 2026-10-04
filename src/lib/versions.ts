@@ -4,6 +4,7 @@
  * DB の model_versions / prompt_versions にも同じ値を登録する (supabase/migrations 参照)。
  */
 export { ROUTING_VERSION } from "@/lib/routing/router";
+export { PERSONALIZED_ROUTING_VERSION } from "@/lib/routing/personalize";
 export { WESTERN_ENGINE_VERSION } from "@/lib/divination/western/engine";
 export { FOUR_PILLARS_ENGINE_VERSION } from "@/lib/divination/four-pillars/engine";
 export { ZI_WEI_ENGINE_VERSION } from "@/lib/divination/zi-wei/engine";
@@ -18,12 +19,13 @@ export { PALMISTRY_ENGINE_VERSION } from "@/lib/divination/palmistry/engine";
  * v1: 西洋占星術・四柱推命 (Phase 1)
  * v2: + 紫微斗数・算命学・九星気学・数秘術 (Phase 2)
  * v3: + タロット・手相 (Phase 3)
+ * v4: + 個人別ルーティング (Phase 4)
  */
-export const PREDICTION_MODEL_VERSION = "prediction_model_v3";
+export const PREDICTION_MODEL_VERSION = "prediction_model_v4";
 
 export const PROMPT_VERSIONS = {
   classify: "classify_v1",
-  interpret: "interpret_v3",
+  interpret: "interpret_v4",
   structureEvent: "structure_event_v1",
   observePalm: "observe_palm_v1",
 } as const;

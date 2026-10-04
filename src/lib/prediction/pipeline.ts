@@ -13,14 +13,14 @@ import { sanitizeItems } from "./sanitize";
 import { route } from "@/lib/routing/router";
 import { periodFrom, planCheckIns, resolvePeriodMonths } from "./schedule";
 import { performanceNoteForAi } from "@/lib/evaluation/performance";
-import { themePerformance } from "@/lib/db/queries";
+import { loadMethodPerformance, themePerformance } from "@/lib/db/queries";
+import { personalize, routingTheme } from "@/lib/routing/personalize";
 import { birthDataFromRow, type BirthProfileRow, type ForecastReport } from "@/lib/db/types";
 import { todayIn } from "@/lib/time/zoned";
 import {
   CLAUDE_MODEL,
   PREDICTION_MODEL_VERSION,
   PROMPT_VERSIONS,
-  ROUTING_VERSION,
 } from "@/lib/versions";
 
 export class PredictionError extends Error {}
@@ -65,7 +65,11 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
     .limit(20);
   if (palmError) throw new PredictionError(`手相データの取得に失敗しました: ${palmError.message}`);
   const palmReadings = (palmRows ?? []) as PalmReadingInput[];
-  const routing = route(classification.category, palmReadings.length === 0 ? { palmistry: "手相画像が未登録" } : {});
+  const baseRouting = route(classification.category, palmReadings.length === 0 ? { palmistry: "手相画像が未登録" } : {});
+  // 個人別ルーティング: 過去の実績で主要占術の順序・入れ替えを調整する (データが少なければ全体モデルのまま)
+  const theme = routingTheme(classification.category, classification.themes);
+  const perf = await loadMethodPerformance(supabase, theme);
+  const routing = personalize(baseRouting, theme, perf.user, perf.global);
   const methods = [...routing.primary, ...routing.secondary];
 
   // 5. 計算エンジン (AI は計算しない)。タロットの引きはこのシードで固定され、Snapshot に残る
@@ -115,7 +119,7 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
       palm_reading_ids: methods.includes("palmistry") ? palmReadings.map((r) => r.id) : [],
     },
     versions: {
-      routing: ROUTING_VERSION,
+      routing: routing.routing_version,
       prediction_model: PREDICTION_MODEL_VERSION,
       prompts: PROMPT_VERSIONS,
       engines: engineVersions,
@@ -137,7 +141,7 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
       period_end: period.end,
       category: classification.category,
       methods,
-      routing_version: ROUTING_VERSION,
+      routing_version: routing.routing_version,
       prediction_model_version: PREDICTION_MODEL_VERSION,
       ai_model: interpretModel,
       prompt_version: PROMPT_VERSIONS.interpret,

@@ -72,7 +72,12 @@ const SYSTEM = `あなたは「予測検証型ライフログアプリ」の解�
 - supporting_methods にはその項目を実際に支持する占術だけを入れる。
 
 ## 過去データ
-past_data_note は、提供された「過去の予測実績」の範囲でだけ書く。データ不足なら「まだ検証データが少ない」と正直に書く。`;
+past_data_note は、提供された「過去の予測実績」の範囲でだけ書く。データ不足なら「まだ検証データが少ない」と正直に書く。
+
+## 占術の重み
+「占術の過去実績による重み」がある場合、推定値の高い占術の示唆を優先して構わない。
+ただし level が global_only の占術についてはこのユーザー個人の傾向として語らない。
+推定値は占術上のシグナルの強さとは別物なので、signal_strength に混ぜない。`;
 
 export interface InterpretInput {
   question: string;
@@ -104,7 +109,16 @@ ${roles}
 ${JSON.stringify(input.engineResults)}
 
 ## 過去の予測実績
-${input.pastPerformanceNote}`;
+${input.pastPerformanceNote}
+
+## 占術の過去実績による重み (テーマ: ${input.routing.personalization?.theme ?? "—"})
+${
+  input.routing.personalization
+    ? input.routing.personalization.weights
+        .map((w) => `${METHODS[w.method].label}: 推定 ${w.estimate} / level ${w.level} / 本人 ${w.user_n} 件・全体 ${w.global_n} 件`)
+        .join("\n")
+    : "なし"
+}`;
 
   return callStructured({ system: SYSTEM, user, schema: ForecastSchema, effort: "high" });
 }
