@@ -10,6 +10,7 @@ import { ENGINES } from "@/lib/divination/registry";
 import { classifyQuestion } from "@/lib/ai/classify";
 import { interpret } from "@/lib/ai/interpret";
 import { sanitizeItems } from "./sanitize";
+import { BASELINE_RULES_VERSION, generateBaselines } from "./baselines";
 import { route } from "@/lib/routing/router";
 import { periodFrom, planCheckIns, resolvePeriodMonths } from "./schedule";
 import { performanceNoteForAi } from "@/lib/evaluation/performance";
@@ -93,6 +94,14 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
   });
   const items = sanitizeItems(forecast.items, period, methods);
   if (items.length === 0) throw new PredictionError("検証可能な予測項目を生成できませんでした。質問を具体的にしてお試しください。");
+
+  // ベースライン予測 (仕様 17): 占術を使わない単純な予測を、予測時点の情報だけで同時に作る
+  const { data: pastOutcomes, error: outcomeError } = await supabase
+    .from("outcomes")
+    .select("occurred_at, theme, event_type, direction, magnitude")
+    .lt("occurred_at", today);
+  if (outcomeError) throw new PredictionError(`ライフログの取得に失敗しました: ${outcomeError.message}`);
+  const baselines = generateBaselines(items, birth.birthDate, today, (pastOutcomes ?? []) as Parameters<typeof generateBaselines>[3]);
   const report: ForecastReport = {
     conclusion: forecast.conclusion,
     agreements: forecast.agreements,
@@ -106,7 +115,7 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
 
   // 8. Snapshot (仕様 10): 予測時点の入力・設定・生データ・解釈をすべて固定保存する
   const snapshot = {
-    schema: "prediction_snapshot_v2",
+    schema: "prediction_snapshot_v3",
     created_at: new Date().toISOString(),
     today,
     user_input: { question: input.questionText, requested_months: input.requestedMonths },
@@ -130,6 +139,7 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
     past_performance_note: pastNote,
     ai_interpretation: forecast,
     final_items: items,
+    baselines: { rules_version: BASELINE_RULES_VERSION, items: baselines },
   };
 
   // 9. 予測・項目・Snapshot・リマインドを 1 トランザクションで保存
@@ -151,6 +161,8 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
       items,
       snapshot,
       check_ins: planCheckIns(period),
+      baseline_items: baselines,
+      baseline_rules_version: BASELINE_RULES_VERSION,
     },
   });
   if (saveError) throw new PredictionError(`予測の保存に失敗しました: ${saveError.message}`);
