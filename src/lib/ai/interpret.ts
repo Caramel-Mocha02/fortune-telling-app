@@ -1,0 +1,110 @@
+import "server-only";
+import { z } from "zod";
+import {
+  DirectionSchema,
+  EventTypeSchema,
+  EVENT_TYPES,
+  MagnitudeSchema,
+  SpecificitySchema,
+  ThemeSchema,
+} from "@/lib/domain/taxonomy";
+import { METHOD_IDS, type EngineResult, type PredictionPeriod } from "@/lib/divination/types";
+import { METHODS } from "@/lib/divination/registry";
+import type { RoutingDecision } from "@/lib/routing/router";
+import { callStructured } from "./client";
+
+const MethodIdSchema = z.enum(METHOD_IDS);
+
+export const PredictionItemDraftSchema = z.object({
+  theme: ThemeSchema,
+  event_type: EventTypeSchema,
+  direction: DirectionSchema,
+  magnitude: MagnitudeSchema,
+  specificity: SpecificitySchema,
+  start_date: z.string().describe("YYYY-MM-DD。予測期間内"),
+  end_date: z.string().describe("YYYY-MM-DD。予測期間内で start_date 以降"),
+  description: z.string().describe("ユーザー向けの一文。後で答え合わせできる具体的な表現"),
+  supporting_methods: z.array(MethodIdSchema).describe("この予測を支持する占術"),
+  signal_strength: z.enum(["weak", "moderate", "strong"]).describe("占術上のシグナルの強さ (過去の的中実績ではない)"),
+  rationale: z.string().describe("どの計算結果 (天体配置・干支など) に基づくか"),
+});
+export type PredictionItemDraft = z.infer<typeof PredictionItemDraftSchema>;
+
+export const ForecastSchema = z.object({
+  conclusion: z.string().describe("結論。2〜3文"),
+  agreements: z.array(z.object({ point: z.string(), methods: z.array(MethodIdSchema) })),
+  differences: z.array(z.object({ method: MethodIdSchema, emphasis: z.string() })),
+  timing: z.string().describe("時期についての説明"),
+  past_data_note: z.string().describe("過去の予測実績に関する一文。提供されたデータの範囲でのみ述べる"),
+  uncertainties: z.array(z.string()),
+  cautions: z.array(z.string()),
+  actions: z.array(z.string()).describe("今できること"),
+  items: z.array(PredictionItemDraftSchema).describe("検証可能な予測項目 (2〜6件)"),
+});
+export type Forecast = z.infer<typeof ForecastSchema>;
+
+const EVENT_TYPE_GUIDE = Object.entries(EVENT_TYPES)
+  .map(([k, v]) => `${k}=${v.label}`)
+  .join(", ");
+
+const SYSTEM = `あなたは「予測検証型ライフログアプリ」の解釈エンジンです。
+複数の占術の計算結果 (専用エンジンが算出済みの構造化データ) を読み、後から現実と照合できる予測レポートを作ります。
+
+## 原則
+- 天体位置・干支・大運などを自分で計算し直したり、データにない配置を作り出したりしない。根拠は渡された計算結果だけ。
+- 各結果の caveats を読む。null や「算出していない」要素 (出生時刻不明時の命盤など) を推測で補わず、その占術の示唆は弱いものとして扱う。
+- 方位 (九星気学の吉方・凶方) は、引っ越し・旅行など移動に関わる質問でだけ予測項目に使う。
+- タロットは引かれたカードの象徴から現状と近未来を読む。タロットだけを根拠にする予測項目の期間は、データの near_future_horizon_months 以内に収める。
+- 手相は現在の状態・傾向と、前回登録からの変化を示すもの。手相だけを根拠に長期の時期を予測しない。
+- 各占術の結果を解釈し、共通点・相違点・時期・強いテーマ・不確実な部分を整理する。
+- 占術の数を票として数えない。同じ相関グループ (例: 四柱推命と算命学) の一致は独立した一致とみなさない。
+- 「必ず」「確実に」「〜%当たる」のような断定や的中率の表現は使わない。
+- 医療・法律・投資・重大な人生判断について、占術を客観的根拠として扱わない。該当する場合は cautions で専門家への相談を促す。
+- 占術は自己理解・内省・仮説形成のためのものという立場で、穏やかで実用的な日本語で書く。
+
+## 予測項目 (items) の作り方
+- 予測は後で「何が・いつ・どの方向に・どの程度」起きたかで評価される。曖昧な「良いことがある」は避け、検証できる単位に分解する。
+- start_date / end_date は予測期間内の具体的な日付範囲にする。根拠となるトランジットや流月の時期に合わせる。
+- event_type は次から選ぶ: ${EVENT_TYPE_GUIDE}
+- direction: positive=良化, negative=悪化, change=方向を問わない変化, stable=現状維持, unknown=不明
+- specificity: abstract / moderate / specific。具体的な出来事を言うほど specific。
+- signal_strength は占術上の示唆の強さ。過去にユーザーに当たったかどうかではない。
+- supporting_methods にはその項目を実際に支持する占術だけを入れる。
+
+## 過去データ
+past_data_note は、提供された「過去の予測実績」の範囲でだけ書く。データ不足なら「まだ検証データが少ない」と正直に書く。`;
+
+export interface InterpretInput {
+  question: string;
+  category: string;
+  today: string;
+  period: PredictionPeriod;
+  routing: RoutingDecision;
+  engineResults: EngineResult[];
+  pastPerformanceNote: string;
+}
+
+export async function interpret(input: InterpretInput) {
+  const roles = [
+    ...input.routing.primary.map((m) => `${METHODS[m].label} (${m}, 主要, グループ: ${METHODS[m].group})`),
+    ...input.routing.secondary.map((m) => `${METHODS[m].label} (${m}, 補助, グループ: ${METHODS[m].group})`),
+  ].join("\n");
+
+  const user = `今日の日付: ${input.today}
+予測期間: ${input.period.start} 〜 ${input.period.end}
+質問分類: ${input.category}
+
+## ユーザーの質問
+${input.question}
+
+## 使用する占術
+${roles}
+
+## 占術の計算結果 (JSON)
+${JSON.stringify(input.engineResults)}
+
+## 過去の予測実績
+${input.pastPerformanceNote}`;
+
+  return callStructured({ system: SYSTEM, user, schema: ForecastSchema, effort: "high" });
+}
