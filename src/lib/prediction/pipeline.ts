@@ -26,11 +26,17 @@ import {
 
 export class PredictionError extends Error {}
 
+/** 予測作成の工程 (画面に進み具合を表示するため) */
+export const PREDICTION_STAGES = ["question", "classify", "compute", "interpret", "save"] as const;
+export type PredictionStage = (typeof PREDICTION_STAGES)[number];
+
 export interface GenerateInput {
   questionText: string;
   /** null なら質問内容と分類から自動決定 */
   requestedMonths: number | null;
   parentPredictionId: string | null;
+  /** 各工程に入るときに呼ばれる */
+  onStage?: (stage: PredictionStage) => void;
 }
 
 export async function generatePrediction(supabase: Supabase, input: GenerateInput): Promise<string> {
@@ -41,7 +47,10 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
   const birth = BirthDataSchema.parse(birthDataFromRow(profileRow as BirthProfileRow));
   const today = todayIn(birth.timeZone);
 
+  const stage = (st: PredictionStage) => input.onStage?.(st);
+
   // 2. 質問を保存 (予測に失敗しても質問履歴は残す)
+  stage("question");
   const { data: question, error: qError } = await supabase
     .from("questions")
     .insert({ text: input.questionText })
@@ -50,6 +59,7 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
   if (qError) throw new PredictionError(`質問の保存に失敗しました: ${qError.message}`);
 
   // 3. 分類
+  stage("classify");
   const { output: classification, model: classifyModel } = await classifyQuestion(input.questionText, today);
   await supabase
     .from("questions")
@@ -74,6 +84,7 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
   const methods = [...routing.primary, ...routing.secondary];
 
   // 5. 計算エンジン (AI は計算しない)。タロットの引きはこのシードで固定され、Snapshot に残る
+  stage("compute");
   const context: EngineContext = { seed: randomUUID(), category: classification.category, palmReadings };
   const engineResults: EngineResult[] = methods.map((m) => ENGINES[m]!.compute({ birth, period, context }));
   const engineVersions = Object.fromEntries(engineResults.map((r) => [r.method, r.engine_version]));
@@ -83,6 +94,7 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
   const pastNote = performanceNoteForAi(classification.themes, past);
 
   // 7. 解釈
+  stage("interpret");
   const { output: forecast, model: interpretModel } = await interpret({
     question: input.questionText,
     category: classification.category,
@@ -112,6 +124,8 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
     cautions: forecast.cautions,
     actions: forecast.actions,
   };
+
+  stage("save");
 
   // 8. Snapshot (仕様 10): 予測時点の入力・設定・生データ・解釈をすべて固定保存する
   const snapshot = {

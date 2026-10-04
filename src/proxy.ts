@@ -29,6 +29,10 @@ export async function proxy(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims && !isPublic) {
+    // API は画面遷移ではなく 401 を返す (fetch 側でログイン切れと分かるように)
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "ログインが切れました。ログインし直してください。" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
   return response;
