@@ -6,6 +6,9 @@ import { deletePalm } from "./actions";
 import { PALM_BUCKET } from "@/lib/supabase/buckets";
 import { PalmForm } from "./palm-form";
 
+// 手相画像の読み取り (Claude の画像解析) に数十秒かかるため
+export const maxDuration = 120;
+
 const LENGTH = { short: "短い", medium: "標準", long: "長い", unknown: "不明" } as const;
 const DEPTH = { faint: "薄い", moderate: "標準", deep: "濃い", unknown: "不明" } as const;
 

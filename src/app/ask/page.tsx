@@ -4,6 +4,9 @@ import { requireUser } from "@/lib/supabase/server";
 import { QUESTION_CATEGORY_LABELS, type QuestionCategory } from "@/lib/domain/taxonomy";
 import { AskForm } from "./ask-form";
 
+// 予測の作成 (占術計算 + Claude の解釈) は 1〜2 分かかるため、このページの Server Action の制限時間を延ばす
+export const maxDuration = 300;
+
 export default async function AskPage({ searchParams }: PageProps<"/ask">) {
   const { supabase } = await requireUser();
   const sp = await searchParams;
