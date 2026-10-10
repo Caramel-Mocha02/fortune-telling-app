@@ -13,6 +13,7 @@ import { sanitizeItems } from "./sanitize";
 import { BASELINE_RULES_VERSION, generateBaselines } from "./baselines";
 import { route } from "@/lib/routing/router";
 import { periodFrom, planCheckIns, resolvePeriodMonths } from "./schedule";
+import { palmRefreshDue } from "./reminders";
 import { performanceNoteForAi } from "@/lib/evaluation/performance";
 import { loadMethodPerformance, themePerformance } from "@/lib/db/queries";
 import { personalize, routingTheme } from "@/lib/routing/personalize";
@@ -38,6 +39,8 @@ export interface GenerateInput {
   clarificationAnswer?: string | null;
   /** 確認の質問を飛ばしてそのまま予測する */
   skipClarification?: boolean;
+  /** 手相を使う占いで、手相の登録を求めた後の選択 (skip: 手相なしで占う / use_existing: 登録済みの手相で占う) */
+  palmDecision?: "skip" | "use_existing" | null;
   /** null なら質問内容と分類から自動決定 */
   requestedMonths: number | null;
   parentPredictionId: string | null;
@@ -47,7 +50,8 @@ export interface GenerateInput {
 
 export type GenerateResult =
   | { type: "done"; id: string }
-  | { type: "clarify"; questionId: string; question: string; options: string[] };
+  | { type: "clarify"; questionId: string; question: string; options: string[] }
+  | { type: "need_palm"; questionId: string; reason: "none" | "stale"; daysSince: number | null };
 
 /** 質問と、確認の質問・回答をまとめた、分類と解釈に渡す文章 */
 export function questionWithClarification(question: string, clarification: { question: string; answer: string } | null): string {
@@ -119,7 +123,21 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
     .limit(20);
   if (palmError) throw new PredictionError(`手相データの取得に失敗しました: ${palmError.message}`);
   const palmReadings = (palmRows ?? []) as PalmReadingInput[];
-  const baseRouting = route(classification.category, palmReadings.length === 0 ? { palmistry: "手相画像が未登録" } : {});
+
+  // 手相は事前登録ではなく、手相を使う占いになったときにその場で登録してもらう
+  const palmWanted = [...route(classification.category).primary, ...route(classification.category).secondary].includes("palmistry");
+  const palmDays = palmRefreshDue(palmReadings[0]?.captured_on ?? null, today);
+  if (palmWanted && !input.palmDecision) {
+    if (palmReadings.length === 0) return { type: "need_palm", questionId: question.id, reason: "none", daysSince: null };
+    if (palmDays !== null) return { type: "need_palm", questionId: question.id, reason: "stale", daysSince: palmDays };
+  }
+  const palmUnavailable =
+    input.palmDecision === "skip"
+      ? "今回は手相なしで占うことを選択"
+      : palmReadings.length === 0
+        ? "手相が未登録"
+        : null;
+  const baseRouting = route(classification.category, palmUnavailable ? { palmistry: palmUnavailable } : {});
   // 個人別ルーティング: 過去の実績で主要占術の順序・入れ替えを調整する (データが少なければ全体モデルのまま)
   const theme = routingTheme(classification.category, classification.themes);
   const perf = await loadMethodPerformance(supabase, theme);

@@ -5,17 +5,7 @@ import { signOut } from "@/app/login/actions";
 import { todayIn } from "@/lib/time/zoned";
 import { LogoMark } from "./logo";
 import { APP_NAME } from "@/lib/brand";
-
-const LINKS = [
-  { href: "/", label: "ホーム" },
-  { href: "/ask", label: "質問する" },
-  { href: "/predictions", label: "タイムライン" },
-  { href: "/log", label: "ライフログ" },
-  { href: "/palm", label: "手相" },
-  { href: "/insights", label: "実績" },
-  { href: "/reviews", label: "レビュー" },
-  { href: "/profile", label: "プロフィール" },
-];
+import { BottomTabs, TopTabs } from "./nav-links";
 
 export async function Nav() {
   let signedIn = false;
@@ -36,32 +26,24 @@ export async function Nav() {
     }
   }
   return (
-    <header className="starry-header">
-      <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2 font-serif text-lg font-bold tracking-wide">
-          <LogoMark />
-          {APP_NAME}
-        </Link>
-        {signedIn && (
-          <>
-            <nav className="flex flex-wrap gap-4 text-sm">
-              {LINKS.map((l) => (
-                <Link key={l.href} href={l.href} className="opacity-80 hover:opacity-100">
-                  {l.label}
-                  {l.href === "/" && dueCount > 0 && (
-                    <span className="ml-1 rounded-full bg-gold px-1.5 text-xs text-[#1e1b4b]" aria-label={`答え合わせ ${dueCount} 件`}>
-                      {dueCount}
-                    </span>
-                  )}
-                </Link>
-              ))}
-            </nav>
-            <form action={signOut} className="ml-auto">
-              <button className="text-xs opacity-70 hover:opacity-100">ログアウト</button>
-            </form>
-          </>
-        )}
-      </div>
-    </header>
+    <>
+      <header className="starry-header sticky top-0 z-40">
+        <div className="mx-auto flex max-w-4xl items-center gap-4 px-4 py-3">
+          <Link href="/" className="flex shrink-0 items-center gap-2 font-serif text-lg font-bold tracking-wide">
+            <LogoMark />
+            {APP_NAME}
+          </Link>
+          {signedIn && (
+            <>
+              <TopTabs dueCount={dueCount} />
+              <form action={signOut} className="ml-auto">
+                <button className="text-xs opacity-70 hover:opacity-100">ログアウト</button>
+              </form>
+            </>
+          )}
+        </div>
+      </header>
+      {signedIn && <BottomTabs dueCount={dueCount} />}
+    </>
   );
 }

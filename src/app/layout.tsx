@@ -18,7 +18,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col font-sans">
         <Nav />
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">{children}</main>
-        <footer className="mx-auto w-full max-w-3xl px-4 py-6 text-xs text-muted">
+        <footer className="mx-auto w-full max-w-3xl px-4 pt-6 pb-28 text-xs text-muted sm:pb-6">
           占いは、自分を見つめ直したり、これからを考えたりするためのヒントです。医療・法律・お金などの大切な判断は、専門家に相談してください。
         </footer>
       </body>

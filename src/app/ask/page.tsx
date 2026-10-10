@@ -4,6 +4,9 @@ import { requireUser } from "@/lib/supabase/server";
 import { QUESTION_CATEGORY_LABELS, type QuestionCategory } from "@/lib/domain/taxonomy";
 import { AskForm } from "./ask-form";
 
+// その場での手相の登録 (Claude による画像の読み取り) に数十秒かかるため
+export const maxDuration = 120;
+
 
 export default async function AskPage({ searchParams }: PageProps<"/ask">) {
   const { supabase } = await requireUser();
@@ -35,8 +38,8 @@ export default async function AskPage({ searchParams }: PageProps<"/ask">) {
 
   return (
     <div className="space-y-6">
-      <PageTitle sub="質問に合わせて占術を選び、計算結果から検証可能な予測を作ります">
-        {parentId ? "再予測する" : "質問する"}
+      <PageTitle sub="知りたいことを書くと、質問に合った占いを選んで、これからを予想します">
+        {parentId ? "もう一度占う" : "占う"}
       </PageTitle>
       {parentId && (
         <p className="text-sm text-muted">

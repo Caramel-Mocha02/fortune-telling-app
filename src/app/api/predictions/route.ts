@@ -34,10 +34,13 @@ export async function POST(request: NextRequest) {
           questionId: parsed.data.question_id ?? null,
           clarificationAnswer: parsed.data.clarification_answer ?? null,
           skipClarification: parsed.data.skip_clarification ?? false,
+          palmDecision: parsed.data.palm_decision ?? null,
           onStage: (stage) => send({ type: "stage", stage }),
         });
         if (result.type === "clarify") {
           send({ type: "clarify", question_id: result.questionId, question: result.question, options: result.options });
+        } else if (result.type === "need_palm") {
+          send({ type: "need_palm", question_id: result.questionId, reason: result.reason, days_since: result.daysSince });
         } else {
           revalidatePath("/");
           send({ type: "done", id: result.id });

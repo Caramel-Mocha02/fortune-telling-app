@@ -47,7 +47,7 @@ export default async function InsightsPage() {
 
   return (
     <div className="space-y-6">
-      <PageTitle sub="過去の予測が現実とどの程度一致したかの記録です。将来の的中を保証するものではありません。">実績</PageTitle>
+      <PageTitle sub="これまでの占いが、実際にどのくらい当たったかの記録です。これからの的中を約束するものではありません。">当たり具合</PageTitle>
 
       <Card className="space-y-4">
         <h2 className="font-bold">検証の進み具合</h2>

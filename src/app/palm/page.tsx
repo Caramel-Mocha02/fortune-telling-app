@@ -26,7 +26,7 @@ export default async function PalmPage() {
 
   return (
     <div className="space-y-6">
-      <PageTitle sub="登録時に画像から線の状態を読み取って記録します。予測では、記録した状態と前回からの変化を使います。">手相</PageTitle>
+      <PageTitle sub="手相を使う占いのときに登録した写真と、読み取った線の様子です。ここから新しく登録することもできます。">手相の記録</PageTitle>
       <Card>
         <PalmForm today={todayIn(profile?.time_zone ?? "Asia/Tokyo")} />
       </Card>

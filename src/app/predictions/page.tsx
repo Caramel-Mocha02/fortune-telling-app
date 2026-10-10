@@ -44,7 +44,7 @@ export default async function TimelinePage() {
 
   return (
     <div className="space-y-6">
-      <PageTitle sub="過去の予測と、実際に起きた出来事を時系列で比べられます">タイムライン</PageTitle>
+      <PageTitle sub="占った内容と、実際に起きた出来事を時間の順に見比べられます">これまでの占い</PageTitle>
 
       {upcoming.length > 0 && (
         <Card>

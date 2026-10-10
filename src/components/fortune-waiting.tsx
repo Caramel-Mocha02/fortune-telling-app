@@ -26,7 +26,19 @@ const STARS = [
   { top: "40%", left: "2%", size: 3, delay: ".9s" },
 ];
 
-export function FortuneWaiting({ stageIndex, elapsedSeconds }: { stageIndex: number; elapsedSeconds: number }) {
+export function FortuneWaiting({
+  stageIndex,
+  elapsedSeconds,
+  compact = false,
+  onShowResult,
+}: {
+  stageIndex: number;
+  elapsedSeconds: number;
+  /** ミニゲームと並べるときの小さい表示 */
+  compact?: boolean;
+  /** 結果ができたら、自動で移らずにこのボタンで見に行く (ゲームで遊んでいる途中など) */
+  onShowResult?: () => void;
+}) {
   const lines = MESSAGES[Math.max(0, stageIndex)] ?? MESSAGES[0];
   const [tick, setTick] = useState(0);
 
@@ -46,7 +58,7 @@ export function FortuneWaiting({ stageIndex, elapsedSeconds }: { stageIndex: num
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl px-6 py-10 text-center text-[#f3eefe]"
+      className={`relative overflow-hidden rounded-2xl px-6 text-center text-[#f3eefe] ${compact ? "py-5" : "py-10"}`}
       style={{ background: "radial-gradient(circle at 50% 35%, #3b2a78 0%, #1e1b4b 55%, #0f0d24 100%)" }}
       role="status"
       aria-live="polite"
@@ -60,37 +72,52 @@ export function FortuneWaiting({ stageIndex, elapsedSeconds }: { stageIndex: num
         />
       ))}
 
-      <div className="relative mx-auto mb-6 h-40 w-40" aria-hidden="true">
+      <div className={`relative mx-auto ${compact ? "mb-3 h-24 w-24" : "mb-6 h-40 w-40"}`} aria-hidden="true">
         {/* 星がめぐる軌道 */}
         <div className="orbit absolute inset-0 rounded-full border border-white/15">
           <span className="absolute -top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-[#e8c56b] shadow-[0_0_12px_#e8c56b]" />
         </div>
-        <div className="orbit-reverse absolute inset-5 rounded-full border border-white/10">
+        <div className={`orbit-reverse absolute rounded-full border border-white/10 ${compact ? "inset-3" : "inset-5"}`}>
           <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-[#c9bdf7] shadow-[0_0_10px_#c9bdf7]" />
         </div>
         {/* 水晶玉 */}
         <div
-          className="crystal absolute inset-10 rounded-full"
+          className={`crystal absolute rounded-full ${compact ? "inset-6" : "inset-10"}`}
           style={{ background: "radial-gradient(circle at 35% 30%, #ffffff 0%, #d9cff9 18%, #8a75d6 55%, #3b2a78 100%)" }}
         />
-        <div className="absolute bottom-6 left-1/2 h-3 w-20 -translate-x-1/2 rounded-[50%] bg-[#e8c56b]/60 blur-[1px]" />
+        <div className={`absolute left-1/2 -translate-x-1/2 rounded-[50%] bg-[#e8c56b]/60 blur-[1px] ${compact ? "bottom-3 h-2 w-12" : "bottom-6 h-3 w-20"}`} />
       </div>
 
-      <p key={message} className="fade-in min-h-[3rem] font-serif text-lg">
-        {message}
-      </p>
+      {onShowResult ? (
+        <div className="fade-in space-y-3">
+          <p className="font-serif text-lg">占いの結果ができました</p>
+          <button
+            type="button"
+            onClick={onShowResult}
+            className="rounded-full bg-[#e8c56b] px-6 py-2 text-sm font-bold text-[#1e1b4b] shadow-[0_0_20px_rgb(232_197_107/0.5)]"
+          >
+            結果を見る
+          </button>
+        </div>
+      ) : (
+        <p key={message} className={`fade-in font-serif ${compact ? "min-h-[2.5rem] text-base" : "min-h-[3rem] text-lg"}`}>
+          {message}
+        </p>
+      )}
 
-      <div className="mt-5 flex justify-center gap-2" aria-label={`5 段階中 ${stageIndex + 1} 段階目`}>
+      <div className={`flex justify-center gap-2 ${compact ? "mt-3" : "mt-5"}`} aria-label={`5 段階中 ${stageIndex + 1} 段階目`}>
         {MESSAGES.map((_, i) => (
           <span
             key={i}
-            className={`h-2 w-2 rounded-full transition-colors ${i <= stageIndex ? "bg-[#e8c56b]" : "bg-white/25"}`}
+            className={`h-2 w-2 rounded-full transition-colors ${onShowResult || i <= stageIndex ? "bg-[#e8c56b]" : "bg-white/25"}`}
           />
         ))}
       </div>
-      <p className="mt-4 text-xs text-white/60">
-        {elapsedSeconds} 秒 ・ 1 分ほどかかります。この画面を閉じずにお待ちください
-      </p>
+      {!onShowResult && (
+        <p className={`text-xs text-white/60 ${compact ? "mt-2" : "mt-4"}`}>
+          {elapsedSeconds} 秒 ・ 1 分ほどかかります。この画面を閉じずにお待ちください
+        </p>
+      )}
     </div>
   );
 }

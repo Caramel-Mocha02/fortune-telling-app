@@ -6,7 +6,9 @@ import { todayIn } from "@/lib/time/zoned";
 import type { CheckInRow } from "@/lib/db/types";
 import { loadKpiInput } from "@/lib/db/kpi-input";
 import { computeKpis } from "@/lib/analytics/kpi";
-import { palmRefreshDue, stalePredictions } from "@/lib/prediction/reminders";
+import { stalePredictions } from "@/lib/prediction/reminders";
+import { MenuCards } from "@/components/menu-cards";
+import { MAIN_TABS, REFLECT_PAGES } from "@/lib/navigation";
 
 export default async function HomePage() {
   const { supabase } = await requireUser();
@@ -22,21 +24,24 @@ export default async function HomePage() {
             プロフィールを登録する
           </Link>
         </Card>
+        <section className="space-y-3">
+          <h2 className="font-bold">このアプリでできること</h2>
+          <MenuCards items={[...MAIN_TABS.filter((t) => t.href !== "/"), ...REFLECT_PAGES]} />
+        </section>
       </div>
     );
   }
 
   const today = todayIn(profile.time_zone);
-  const [{ data: due }, { data: open }, { data: items }, { data: feedback }, kpiInput, { data: recentRows }, { data: latestPalm }] = await Promise.all([
+  const [{ data: due }, { data: open }, { data: items }, { data: feedback }, kpiInput, { data: recentRows }] = await Promise.all([
     supabase.from("check_ins").select("*, predictions(summary)").is("completed_at", null).lte("due_on", today).order("due_on"),
     supabase.from("predictions").select("id, created_at, prediction_period_start, status, summary").eq("status", "open"),
     supabase.from("prediction_items").select("id, prediction_id"),
     supabase.from("feedback").select("prediction_item_id, created_at"),
     loadKpiInput(supabase),
     supabase.from("predictions").select("id, created_at, summary").order("created_at", { ascending: false }).limit(5),
-    supabase.from("palm_readings").select("captured_on").order("captured_on", { ascending: false }).limit(1).maybeSingle(),
   ]);
-  const palmDays = palmRefreshDue(latestPalm?.captured_on ?? null, today);
+
   const dueRows = (due ?? []) as Array<CheckInRow & { predictions: { summary: string } | null }>;
   const stale = stalePredictions(
     {
@@ -89,15 +94,6 @@ export default async function HomePage() {
         </Card>
       )}
 
-      {palmDays !== null && (
-        <Card className="text-sm">
-          前回の手相の登録から {palmDays} 日経ちました。同じ条件で撮り直すと、線の状態の変化を比べられます。{" "}
-          <Link href="/palm" className="text-accent underline">
-            手相を登録する
-          </Link>
-        </Card>
-      )}
-
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="予測" value={String(kpiInput.predictions.length)} />
         <Stat label="記録した出来事" value={String(kpiInput.outcomes.length)} />
@@ -107,12 +103,17 @@ export default async function HomePage() {
 
       <div className="flex flex-wrap gap-2">
         <Link href="/ask" className={buttonClass()}>
-          質問する
+          占う
         </Link>
         <Link href="/log" className={buttonClass("secondary")}>
           出来事を記録する
         </Link>
       </div>
+
+      <section className="space-y-3">
+        <h2 className="font-bold">このアプリでできること</h2>
+        <MenuCards items={[...MAIN_TABS.filter((t) => t.href !== "/"), ...REFLECT_PAGES]} />
+      </section>
 
       {recent.length > 0 && (
         <Card>

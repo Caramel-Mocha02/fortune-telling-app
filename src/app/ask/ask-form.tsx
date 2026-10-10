@@ -1,9 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { buttonClass, ErrorMessage } from "@/components/ui";
 import type { PredictionEvent } from "@/lib/prediction/ask-schema";
 import { FortuneWaiting } from "@/components/fortune-waiting";
+import { PalmPrompt } from "./palm-prompt";
+import { StarMatchGame } from "@/components/star-match-game";
+import { AdSlot } from "@/components/ad-slot";
 
 const PERIODS = [
   { value: "auto", label: "質問から自動で決める" },
@@ -27,7 +30,11 @@ export function AskForm({ parentId, defaultQuestion }: { parentId: string | null
   const [now, setNow] = useState(() => Date.now());
   const [base, setBase] = useState<Record<string, unknown> | null>(null);
   const [clarify, setClarify] = useState<Extract<PredictionEvent, { type: "clarify" }> | null>(null);
+  const [needPalm, setNeedPalm] = useState<Extract<PredictionEvent, { type: "need_palm" }> | null>(null);
   const [answer, setAnswer] = useState("");
+  /** ミニゲームで遊び始めたら、結果ができても自動で画面を切り替えない */
+  const played = useRef(false);
+  const [resultId, setResultId] = useState<string | null>(null);
   const running = startedAt !== null;
 
   useEffect(() => {
@@ -39,6 +46,9 @@ export function AskForm({ parentId, defaultQuestion }: { parentId: string | null
   async function run(body: Record<string, unknown>) {
     setError(null);
     setClarify(null);
+    setNeedPalm(null);
+    setResultId(null);
+    played.current = false;
     setStage(null);
     setStartedAt(Date.now());
     setNow(Date.now());
@@ -73,8 +83,15 @@ export function AskForm({ parentId, defaultQuestion }: { parentId: string | null
             setStartedAt(null);
             return;
           }
+          if (event.type === "need_palm") {
+            // 手相を使う占いなので、その場で登録してもらう
+            setNeedPalm(event);
+            setStartedAt(null);
+            return;
+          }
           if (event.type === "done") {
-            router.push(`/predictions/${event.id}`);
+            if (played.current) setResultId(event.id);
+            else router.push(`/predictions/${event.id}`);
             return;
           }
         }
@@ -92,6 +109,11 @@ export function AskForm({ parentId, defaultQuestion }: { parentId: string | null
     const body = { question: fd.get("question"), months: fd.get("months"), parent: fd.get("parent") };
     setBase(body);
     void run(body);
+  }
+
+  function continueWithPalm(decision: "skip" | "use_existing") {
+    if (!base || !needPalm) return;
+    void run({ ...base, question_id: needPalm.question_id, palm_decision: decision });
   }
 
   function answerClarification(value: string | null) {
@@ -116,14 +138,14 @@ export function AskForm({ parentId, defaultQuestion }: { parentId: string | null
           rows={4}
           required
           minLength={4}
-          disabled={running || clarify !== null}
+          disabled={running || clarify !== null || needPalm !== null}
           defaultValue={defaultQuestion}
           placeholder="例: 今後1年の仕事の流れを見てほしい / いつ恋人ができそう？"
         />
       </div>
       <div className="space-y-1">
         <label htmlFor="months">予測期間</label>
-        <select id="months" name="months" defaultValue="auto" disabled={running || clarify !== null}>
+        <select id="months" name="months" defaultValue="auto" disabled={running || clarify !== null || needPalm !== null}>
           {PERIODS.map((p) => (
             <option key={p.value} value={p.value}>
               {p.label}
@@ -133,7 +155,9 @@ export function AskForm({ parentId, defaultQuestion }: { parentId: string | null
       </div>
       <ErrorMessage message={error} />
 
-      {clarify && !running ? (
+      {needPalm && !running ? (
+        <PalmPrompt reason={needPalm.reason} daysSince={needPalm.days_since} onContinue={continueWithPalm} />
+      ) : clarify && !running ? (
         <div className="space-y-3 rounded-lg border border-accent p-4">
           <p className="text-sm font-medium">予測を作る前に確認させてください</p>
           <p>{clarify.question}</p>
@@ -163,7 +187,16 @@ export function AskForm({ parentId, defaultQuestion }: { parentId: string | null
           </button>
         </div>
       ) : running ? (
-        <FortuneWaiting stageIndex={currentIndex} elapsedSeconds={Math.floor((now - startedAt!) / 1000)} />
+        <div className="space-y-4">
+          <FortuneWaiting
+            compact
+            stageIndex={currentIndex}
+            elapsedSeconds={Math.floor((now - startedAt!) / 1000)}
+            onShowResult={resultId ? () => router.push(`/predictions/${resultId}`) : undefined}
+          />
+          <StarMatchGame onPlay={() => (played.current = true)} />
+          <AdSlot placement="waiting" />
+        </div>
       ) : (
         <button type="submit" className={buttonClass()}>
           占ってみる

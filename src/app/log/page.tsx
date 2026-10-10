@@ -15,7 +15,7 @@ export default async function LogPage() {
 
   return (
     <div className="space-y-6">
-      <PageTitle sub="実際に起きた出来事を記録します。予測と照合するときの「現実」のデータになります。">ライフログ</PageTitle>
+      <PageTitle sub="実際に起きた出来事を書き留めます。占いの答え合わせのもとになります。">記録する</PageTitle>
       <Card>
         <LogForm today={today} />
       </Card>
