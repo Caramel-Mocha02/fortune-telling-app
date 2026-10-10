@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { APP_SLUG } from "@/lib/brand";
 
 /** 本人のデータの書き出し対象 (行レベルセキュリティにより本人の行だけが返る) */
 const TABLES = [
@@ -42,7 +43,7 @@ export async function GET() {
   return new Response(JSON.stringify(out, null, 2), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Content-Disposition": `attachment; filename="yosoku-log-export-${date}.json"`,
+      "Content-Disposition": `attachment; filename="${APP_SLUG}-export-${date}.json"`,
       "Cache-Control": "no-store",
     },
   });

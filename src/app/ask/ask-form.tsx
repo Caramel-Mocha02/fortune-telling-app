@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { buttonClass, ErrorMessage } from "@/components/ui";
 import type { PredictionEvent } from "@/lib/prediction/ask-schema";
+import { FortuneWaiting } from "@/components/fortune-waiting";
 
 const PERIODS = [
   { value: "auto", label: "質問から自動で決める" },
@@ -15,13 +16,8 @@ const PERIODS = [
 ];
 
 type Stage = Extract<PredictionEvent, { type: "stage" }>["stage"];
-const STAGES: Array<{ id: Stage; label: string }> = [
-  { id: "question", label: "質問を保存" },
-  { id: "classify", label: "質問の内容を分類" },
-  { id: "compute", label: "占術を計算" },
-  { id: "interpret", label: "計算結果を AI が解釈 (1分ほどかかります)" },
-  { id: "save", label: "予測を保存" },
-];
+/** サーバーから届く工程の順番 (待ち時間の画面の進み具合に使う) */
+const STAGES: Stage[] = ["question", "classify", "compute", "interpret", "save"];
 
 export function AskForm({ parentId, defaultQuestion }: { parentId: string | null; defaultQuestion: string }) {
   const router = useRouter();
@@ -107,7 +103,7 @@ export function AskForm({ parentId, defaultQuestion }: { parentId: string | null
     );
   }
 
-  const currentIndex = stage ? STAGES.findIndex((s) => s.id === stage) : -1;
+  const currentIndex = stage ? STAGES.indexOf(stage) : 0;
 
   return (
     <form onSubmit={submit} className="space-y-4">
@@ -167,19 +163,10 @@ export function AskForm({ parentId, defaultQuestion }: { parentId: string | null
           </button>
         </div>
       ) : running ? (
-        <div className="space-y-2 rounded-lg bg-background p-4" aria-live="polite">
-          <ol className="space-y-1.5 text-sm">
-            {STAGES.map((s, i) => (
-              <li key={s.id} className={i <= currentIndex ? "" : "text-muted"}>
-                {i < currentIndex ? "✓" : i === currentIndex ? "…" : "・"} {s.label}
-              </li>
-            ))}
-          </ol>
-          <p className="text-xs text-muted">経過 {Math.floor((now - startedAt!) / 1000)} 秒 ・ この画面を閉じずにお待ちください</p>
-        </div>
+        <FortuneWaiting stageIndex={currentIndex} elapsedSeconds={Math.floor((now - startedAt!) / 1000)} />
       ) : (
         <button type="submit" className={buttonClass()}>
-          予測レポートを作る
+          占ってみる
         </button>
       )}
     </form>

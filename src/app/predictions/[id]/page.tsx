@@ -6,22 +6,21 @@ import { latestVerdicts, themePerformance } from "@/lib/db/queries";
 import type { CheckInRow, PredictionItemRow, PredictionRow } from "@/lib/db/types";
 import { METHOD_GROUPS, METHODS } from "@/lib/divination/registry";
 import {
-  DIRECTION_LABELS,
   EVENT_TYPES,
-  MAGNITUDE_LABELS,
   QUESTION_CATEGORY_LABELS,
-  SPECIFICITY_LABELS,
   THEME_LABELS,
   VERDICT_LABELS,
   type QuestionCategory,
 } from "@/lib/domain/taxonomy";
-import { EVIDENCE_LABELS, type ThemePerformance } from "@/lib/evaluation/performance";
+import type { ThemePerformance } from "@/lib/evaluation/performance";
 import { LABELS_JA } from "@/lib/evaluation/evaluate";
 import type { RoutingDecision } from "@/lib/routing/router";
 import type { EngineResult } from "@/lib/divination/types";
 import type { TarotData } from "@/lib/divination/tarot/engine";
 
-const SIGNAL_LABELS = { weak: "弱", moderate: "中", strong: "強" } as const;
+const SIGNAL_LABELS = { weak: "弱め", moderate: "ふつう", strong: "強め" } as const;
+const DIRECTION_BADGES = { positive: "うれしい変化", negative: "気をつけたいこと", change: "変化", stable: "今の状態が続く", unknown: null } as const;
+const EVIDENCE_PLAIN = { insufficient: "まだ記録が少ない", weak: "少しずつ記録が集まっています", moderate: "記録が集まっています" } as const;
 
 export default async function PredictionPage({ params }: PageProps<"/predictions/[id]">) {
   const { id } = await params;
@@ -89,20 +88,20 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
         {routing?.personalization && (
           <p className="text-xs text-muted">
             {routing.personalization.applied
-              ? `過去の実績 (${THEME_LABELS[routing.personalization.theme]}) を占術の選択に反映しました。${routing.personalization.changes.join(" ／ ")}`
-              : `${THEME_LABELS[routing.personalization.theme]}についての個人の実績がまだ少ないため、標準のルールで占術を選んでいます。`}
+              ? `これまでの答え合わせ (${THEME_LABELS[routing.personalization.theme]}) をもとに、あなたに合う占いを優先しました。`
+              : `${THEME_LABELS[routing.personalization.theme]}の答え合わせがまだ少ないので、おすすめの組み合わせで占っています。`}
           </p>
         )}
         {routing && routing.skipped.length > 0 && (
           <p className="text-xs text-muted">
-            今回使わなかった占術: {routing.skipped.map((s) => `${METHODS[s.method].label} (${s.reason})`).join("・")}
+            今回使わなかった占い: {routing.skipped.map((s) => `${METHODS[s.method].label} (${s.reason})`).join("・")}
           </p>
         )}
       </Card>
 
       {sensitive && sensitive !== "none" && (
         <Card className="border-amber-300 text-sm">
-          この質問は医療・法律・投資に関わる内容を含みます。占術の予測は判断の根拠にはならないため、必ず専門家に相談してください。
+          この質問は医療・法律・投資に関わる内容を含みます。占いの結果は判断の根拠にはならないため、必ず専門家に相談してください。
         </Card>
       )}
 
@@ -123,20 +122,19 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
         </Section>
       )}
 
-      <Section title="結論">
+      <Section title="占いの結果">
         <p className="leading-relaxed">{report.conclusion}</p>
       </Section>
 
       {report.agreements.length > 0 && (
-        <Section title="複数の占術で一致していること">
+        <Section title="いくつかの占いで共通していること">
           <ul className="space-y-2">
             {report.agreements.map((a, i) => {
-              const groups = new Set(a.methods.map((m) => METHODS[m].group));
               return (
                 <li key={i}>
                   {a.point}
                   <span className="ml-2 text-xs text-muted">
-                    ({a.methods.map((m) => METHODS[m].label).join("・")} ／ 独立した系統 {groups.size})
+                    ({a.methods.map((m) => METHODS[m].label).join("・")})
                   </span>
                 </li>
               );
@@ -145,9 +143,9 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
         </Section>
       )}
 
-      <Section title="検証する予測項目">
+      <Section title="これから起きそうなこと">
         <p className="mb-4 text-xs text-muted">
-          この予測は保存時点で固定されています。後から書き換えることはできません。
+          この内容は占った時点のまま残り、あとから書き換えることはできません。期間が来たら答え合わせをしてみましょう。
         </p>
         <ul className="space-y-4">
           {items.map((item) => {
@@ -163,31 +161,26 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <Badge>{THEME_LABELS[item.theme]}</Badge>
                   <Badge>{EVENT_TYPES[item.event_type].label}</Badge>
-                  <Badge>方向: {DIRECTION_LABELS[item.direction]}</Badge>
-                  <Badge>規模: {MAGNITUDE_LABELS[item.magnitude]}</Badge>
-                  <Badge>具体性: {SPECIFICITY_LABELS[item.specificity]}</Badge>
+                  {DIRECTION_BADGES[item.direction] && <Badge>{DIRECTION_BADGES[item.direction]}</Badge>}
                 </div>
-                {/* 仕様 36: 占術上のシグナルと実績を分けて表示する */}
-                <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                {/* 仕様 36: 占いの示し方と、これまでの当たり具合を分けて表示する */}
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <dt className="text-muted">占術上のシグナル</dt>
+                    <dt className="text-muted">占いの示し方</dt>
                     <dd>
-                      {SIGNAL_LABELS[item.signal_strength]} ({item.independent_group_count} 系統)
+                      {SIGNAL_LABELS[item.signal_strength]}
+                      {item.independent_group_count >= 2 && ` (${item.independent_group_count} 種類の占いが同じことを示しています)`}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-muted">過去の個人データ ({THEME_LABELS[item.theme]})</dt>
-                    <dd>{perf ? `${EVIDENCE_LABELS[perf.level]} (${perf.sample_count}件)` : "データ不足 (0件)"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted">統計的検証</dt>
-                    <dd>データ不足</dd>
+                    <dt className="text-muted">これまでの当たり具合 ({THEME_LABELS[item.theme]})</dt>
+                    <dd>{perf ? `${EVIDENCE_PLAIN[perf.level]} (${perf.sample_count}件)` : "まだ記録が少ない (0件)"}</dd>
                   </div>
                 </dl>
                 <details className="mt-2 text-xs text-muted">
-                  <summary className="cursor-pointer">根拠</summary>
+                  <summary className="cursor-pointer">どの占いからそう読めたか</summary>
                   <p className="mt-1">{item.rationale}</p>
-                  <p className="mt-1">支持: {item.supporting_methods.map((m) => METHODS[m].label).join("・") || "なし"}</p>
+                  <p className="mt-1">示した占い: {item.supporting_methods.map((m) => METHODS[m].label).join("・") || "なし"}</p>
                 </details>
                 {fb && (
                   <div className="mt-3 rounded-md bg-background p-2 text-xs">
@@ -195,7 +188,7 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
                     {ev && (
                       <span className="ml-2 text-muted">
                         {ev.evaluation_source === "ambiguous"
-                          ? "／ 出来事の記録が紐付いていないため評価は「曖昧」扱い"
+                          ? "／ ライフログの出来事と結びつけると、より正確に答え合わせできます"
                           : `／ 時期: ${ev.timing_label ? LABELS_JA.timing[ev.timing_label as keyof typeof LABELS_JA.timing] : "—"} ・ イベント: ${LABELS_JA.event[ev.event_label as keyof typeof LABELS_JA.event]}`}
                       </span>
                     )}
@@ -207,7 +200,7 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
         </ul>
       </Section>
 
-      <Section title="過去データとの比較">
+      <Section title="これまでの答え合わせから">
         <p className="leading-relaxed">{report.past_data_note}</p>
       </Section>
 

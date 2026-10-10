@@ -3,6 +3,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/login/actions";
 import { todayIn } from "@/lib/time/zoned";
+import { LogoMark } from "./logo";
+import { APP_NAME } from "@/lib/brand";
 
 const LINKS = [
   { href: "/", label: "ホーム" },
@@ -34,19 +36,20 @@ export async function Nav() {
     }
   }
   return (
-    <header className="border-b border-border bg-surface">
+    <header className="starry-header">
       <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3">
-        <Link href="/" className="font-bold text-accent">
-          予測ログ
+        <Link href="/" className="flex items-center gap-2 font-serif text-lg font-bold tracking-wide">
+          <LogoMark />
+          {APP_NAME}
         </Link>
         {signedIn && (
           <>
             <nav className="flex flex-wrap gap-4 text-sm">
               {LINKS.map((l) => (
-                <Link key={l.href} href={l.href} className="text-muted hover:text-foreground">
+                <Link key={l.href} href={l.href} className="opacity-80 hover:opacity-100">
                   {l.label}
                   {l.href === "/" && dueCount > 0 && (
-                    <span className="ml-1 rounded-full bg-accent px-1.5 text-xs text-white" aria-label={`答え合わせ ${dueCount} 件`}>
+                    <span className="ml-1 rounded-full bg-gold px-1.5 text-xs text-[#1e1b4b]" aria-label={`答え合わせ ${dueCount} 件`}>
                       {dueCount}
                     </span>
                   )}
@@ -54,7 +57,7 @@ export async function Nav() {
               ))}
             </nav>
             <form action={signOut} className="ml-auto">
-              <button className="text-xs text-muted hover:text-foreground">ログアウト</button>
+              <button className="text-xs opacity-70 hover:opacity-100">ログアウト</button>
             </form>
           </>
         )}
