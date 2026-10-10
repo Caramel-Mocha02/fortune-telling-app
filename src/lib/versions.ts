@@ -25,7 +25,7 @@ export const PREDICTION_MODEL_VERSION = "prediction_model_v4";
 
 export const PROMPT_VERSIONS = {
   classify: "classify_v2",
-  interpret: "interpret_v4",
+  interpret: "interpret_v5",
   structureEvent: "structure_event_v1",
   observePalm: "observe_palm_v1",
 } as const;

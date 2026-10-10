@@ -160,11 +160,7 @@ export async function generatePrediction(supabase: Supabase, input: GenerateInpu
   const report: ForecastReport = {
     conclusion: forecast.conclusion,
     agreements: forecast.agreements,
-    differences: forecast.differences,
-    timing: forecast.timing,
     past_data_note: forecast.past_data_note,
-    uncertainties: forecast.uncertainties,
-    cautions: forecast.cautions,
     actions: forecast.actions,
   };
 

@@ -145,23 +145,6 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
         </Section>
       )}
 
-      {report.differences.length > 0 && (
-        <Section title="占術によって異なること">
-          <dl className="space-y-2">
-            {report.differences.map((d, i) => (
-              <div key={i}>
-                <dt className="text-sm font-medium">{METHODS[d.method].label}</dt>
-                <dd className="text-sm">{d.emphasis}</dd>
-              </div>
-            ))}
-          </dl>
-        </Section>
-      )}
-
-      <Section title="時期">
-        <p className="leading-relaxed">{report.timing}</p>
-      </Section>
-
       <Section title="検証する予測項目">
         <p className="mb-4 text-xs text-muted">
           この予測は保存時点で固定されています。後から書き換えることはできません。
@@ -227,16 +210,6 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
       <Section title="過去データとの比較">
         <p className="leading-relaxed">{report.past_data_note}</p>
       </Section>
-
-      {(report.uncertainties.length > 0 || report.cautions.length > 0) && (
-        <Section title="注意点">
-          <ul className="list-disc space-y-1 pl-5">
-            {[...report.uncertainties, ...report.cautions].map((c, i) => (
-              <li key={i}>{c}</li>
-            ))}
-          </ul>
-        </Section>
-      )}
 
       {report.actions.length > 0 && (
         <Section title="今できること">

@@ -33,11 +33,7 @@ export type PredictionItemDraft = z.infer<typeof PredictionItemDraftSchema>;
 export const ForecastSchema = z.object({
   conclusion: z.string().describe("結論。2〜3文"),
   agreements: z.array(z.object({ point: z.string(), methods: z.array(MethodIdSchema) })),
-  differences: z.array(z.object({ method: MethodIdSchema, emphasis: z.string() })),
-  timing: z.string().describe("時期についての説明"),
   past_data_note: z.string().describe("過去の予測実績に関する一文。提供されたデータの範囲でのみ述べる"),
-  uncertainties: z.array(z.string()),
-  cautions: z.array(z.string()),
   actions: z.array(z.string()).describe("今できること"),
   items: z.array(PredictionItemDraftSchema).describe("検証可能な予測項目 (2〜6件)"),
 });
@@ -56,10 +52,10 @@ const SYSTEM = `あなたは「予測検証型ライフログアプリ」の解�
 - 方位 (九星気学の吉方・凶方) は、引っ越し・旅行など移動に関わる質問でだけ予測項目に使う。
 - タロットは引かれたカードの象徴から現状と近未来を読む。タロットだけを根拠にする予測項目の期間は、データの near_future_horizon_months 以内に収める。
 - 手相は現在の状態・傾向と、前回登録からの変化を示すもの。手相だけを根拠に長期の時期を予測しない。
-- 各占術の結果を解釈し、共通点・相違点・時期・強いテーマ・不確実な部分を整理する。
+- 各占術の結果を解釈し、複数の占術に共通する点と、検証できる予測項目にまとめる。時期は各予測項目の期間として示す。
 - 占術の数を票として数えない。同じ相関グループ (例: 四柱推命と算命学) の一致は独立した一致とみなさない。
 - 「必ず」「確実に」「〜%当たる」のような断定や的中率の表現は使わない。
-- 医療・法律・投資・重大な人生判断について、占術を客観的根拠として扱わない。該当する場合は cautions で専門家への相談を促す。
+- 医療・法律・投資・重大な人生判断について、占術を客観的根拠として扱わない。占術に詳しくない人にも分かる言葉で書き、専門用語は使うなら一言で説明する。
 - 占術は自己理解・内省・仮説形成のためのものという立場で、穏やかで実用的な日本語で書く。
 
 ## 予測項目 (items) の作り方
@@ -87,6 +83,8 @@ export interface InterpretInput {
   routing: RoutingDecision;
   engineResults: EngineResult[];
   pastPerformanceNote: string;
+  /** 解釈の深さ (既定 high) */
+  effort?: "low" | "medium" | "high";
 }
 
 export async function interpret(input: InterpretInput) {
@@ -120,5 +118,5 @@ ${
     : "なし"
 }`;
 
-  return callStructured({ system: SYSTEM, user, schema: ForecastSchema, effort: "high" });
+  return callStructured({ system: SYSTEM, user, schema: ForecastSchema, effort: input.effort ?? "high" });
 }

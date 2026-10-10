@@ -27,7 +27,7 @@ interface StructuredCallOptions<T extends z.ZodType> {
  */
 export async function callStructured<T extends z.ZodType>(
   opts: StructuredCallOptions<T>,
-): Promise<{ output: z.infer<T>; model: string }> {
+): Promise<{ output: z.infer<T>; model: string; usage: { input_tokens: number; output_tokens: number } }> {
   let response;
   try {
     response = await getClient().beta.messages.parse({
@@ -61,5 +61,9 @@ export async function callStructured<T extends z.ZodType>(
   if (response.parsed_output == null) {
     throw new AiError("AI の出力を解析できませんでした。");
   }
-  return { output: response.parsed_output as z.infer<T>, model: response.model };
+  return {
+    output: response.parsed_output as z.infer<T>,
+    model: response.model,
+    usage: { input_tokens: response.usage.input_tokens, output_tokens: response.usage.output_tokens },
+  };
 }

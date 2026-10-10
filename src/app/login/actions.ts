@@ -50,6 +50,8 @@ export async function authenticate(_prev: AuthState, formData: FormData): Promis
     });
     if (error) return { error: authErrorMessage(error, "signup") };
     if (!data.session) return { message: "確認メールを送信しました。メール内のリンクから登録を完了してください。" };
+    // 確認メールを無効にしている場合は、登録と同時にログインした状態になる
+    redirect("/profile");
   } else {
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
     if (error) return { error: authErrorMessage(error, "signin") };

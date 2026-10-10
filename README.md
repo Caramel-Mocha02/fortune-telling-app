@@ -97,3 +97,7 @@ supabase/migrations/        スキーマ・RLS・不変性トリガー・RPC・�
 ## 未実装のもの
 - メール・プッシュ通知 (現在はアプリ内のみ: ナビのバッジ、ホームの期日案内と定期的な確認)
 - Baseline C の事前分布 (年齢層ごとの典型的な出来事) は素朴な固定表です。実データが集まったら全体の出来事の頻度から作り直せます
+
+## データの出典
+
+- 出生地 (市区町村の代表点): 「アドレス・ベース・レジストリ」(デジタル庁) をもとに株式会社 Geolonia が作成したデータ ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja)) を加工して `src/lib/domain/japan-municipalities.json` に収録
