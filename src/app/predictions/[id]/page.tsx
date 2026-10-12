@@ -4,7 +4,7 @@ import { Badge, buttonClass, Card, formatDate, PageTitle } from "@/components/ui
 import { requireUser } from "@/lib/supabase/server";
 import { latestVerdicts, themePerformance } from "@/lib/db/queries";
 import type { CheckInRow, PredictionItemRow, PredictionRow } from "@/lib/db/types";
-import { METHOD_GROUPS, METHODS } from "@/lib/divination/registry";
+import { METHODS } from "@/lib/divination/registry";
 import {
   EVENT_TYPES,
   QUESTION_CATEGORY_LABELS,
@@ -80,7 +80,7 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
           <Badge tone="accent">{QUESTION_CATEGORY_LABELS[p.category as QuestionCategory] ?? p.category}</Badge>
           {p.methods.map((m) => (
             <Badge key={m}>
-              {METHODS[m].label} ・ {METHOD_GROUPS[METHODS[m].group]}
+              {METHODS[m].label}
             </Badge>
           ))}
           {p.status === "closed" && <Badge>答え合わせ完了</Badge>}
@@ -113,7 +113,7 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
                 <p className="text-xs text-muted">{c.position}</p>
                 <p className="font-medium">
                   {c.name}
-                  <span className="ml-1 text-xs text-muted">{c.orientation}</span>
+                  {c.orientation === "逆位置" && <span className="ml-1 text-xs text-muted">(さかさま)</span>}
                 </p>
                 <p className="mt-1 text-xs text-muted">{c.keywords}</p>
               </li>
@@ -252,10 +252,14 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
         </Card>
       )}
 
-      <p className="text-xs text-muted">
-        {p.routing_version} ・ {p.prediction_model_version} ・ {p.prompt_version} ・ {p.ai_model} ・{" "}
-        {Object.values(p.divination_engine_versions).join(" ・ ")} ・ snapshot {snapshot?.payload_sha256?.slice(0, 12)}
-      </p>
+      {/* 予測の再現・新旧比較のための記録 (仕様 23)。ふだんは閉じておく */}
+      <details className="text-xs text-muted">
+        <summary className="cursor-pointer">記録の詳細</summary>
+        <p className="mt-1">
+          {p.routing_version} ・ {p.prediction_model_version} ・ {p.prompt_version} ・ {p.ai_model} ・{" "}
+          {Object.values(p.divination_engine_versions).join(" ・ ")} ・ snapshot {snapshot?.payload_sha256?.slice(0, 12)}
+        </p>
+      </details>
     </div>
   );
 }

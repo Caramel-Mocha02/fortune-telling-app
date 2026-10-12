@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { uploadPalm } from "@/app/palm/actions";
 import { buttonClass, ErrorMessage } from "@/components/ui";
 import { HandIcon } from "@/components/icons";
@@ -19,12 +19,18 @@ export function PalmPrompt({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const handRef = useRef<HTMLSelectElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  async function upload(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  // 質問フォームの内側に置かれるため、<form> を入れ子にせずボタンから送る
+  async function upload() {
+    const file = fileRef.current?.files?.[0];
+    if (!file) return setError("手のひらの写真を選んでください");
     setPending(true);
     setError(null);
-    const fd = new FormData(e.currentTarget);
+    const fd = new FormData();
+    fd.set("hand", handRef.current?.value ?? "right");
+    fd.set("image", file);
     const d = new Date();
     fd.set("captured_on", `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
     const result = await uploadPalm({}, fd);
@@ -49,18 +55,18 @@ export function PalmPrompt({
         </div>
       </div>
 
-      <form onSubmit={upload} className="space-y-3">
+      <div className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-[8rem_1fr]">
-          <select name="hand" defaultValue="right" aria-label="手" disabled={pending}>
+          <select ref={handRef} defaultValue="right" aria-label="手" disabled={pending}>
             <option value="right">右手</option>
             <option value="left">左手</option>
           </select>
-          <input name="image" type="file" accept="image/jpeg,image/png,image/webp" required disabled={pending} aria-label="手のひらの写真" />
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" disabled={pending} aria-label="手のひらの写真" />
         </div>
         <p className="text-xs text-muted">明るい場所で、手のひら全体を正面から撮影してください (JPEG・PNG・WebP、5MB まで)。</p>
         <ErrorMessage message={error} />
         <div className="flex flex-wrap items-center gap-3">
-          <button type="submit" className={buttonClass()} disabled={pending}>
+          <button type="button" onClick={upload} className={buttonClass()} disabled={pending}>
             {pending ? "手相を読み取っています…" : "登録して占う"}
           </button>
           {reason === "stale" && (
@@ -72,7 +78,7 @@ export function PalmPrompt({
             手相なしで占う
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

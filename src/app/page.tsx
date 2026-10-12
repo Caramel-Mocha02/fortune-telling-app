@@ -95,10 +95,10 @@ export default async function HomePage() {
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="予測" value={String(kpiInput.predictions.length)} />
+        <Stat label="占った回数" value={String(kpiInput.predictions.length)} />
         <Stat label="記録した出来事" value={String(kpiInput.outcomes.length)} />
-        <Stat label="答え合わせ率" value={pct(kpi.verification_rate.rate)} hint="確認時期が来た予測項目のうち回答済みの割合" />
-        <Stat label="評価カバレッジ" value={pct(kpi.evaluation_coverage.rate)} hint="期間が終わった予測項目のうち評価済みの割合" />
+        <Stat label="答え合わせ率" value={pct(kpi.verification_rate.rate)} hint="答え合わせの時期が来たもののうち、回答した割合" />
+        <Stat label="答え合わせ済み" value={pct(kpi.evaluation_coverage.rate)} hint="予想の期間が終わったもののうち、答え合わせができた割合" />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -117,12 +117,13 @@ export default async function HomePage() {
 
       {recent.length > 0 && (
         <Card>
-          <h2 className="mb-2 font-bold">最近の予測</h2>
-          <ul className="space-y-2 text-sm">
+          <h2 className="mb-2 font-bold">最近の占い</h2>
+          <ul className="divide-y divide-border text-sm">
             {recent.map((p) => (
               <li key={p.id}>
-                <Link href={`/predictions/${p.id}`} className="hover:underline">
-                  <span className="text-muted">{formatDate(p.created_at)}</span> {p.summary}
+                <Link href={`/predictions/${p.id}`} className="block py-2 hover:text-accent">
+                  <span className="text-xs text-muted">{formatDate(p.created_at)}</span>
+                  <span className="mt-0.5 line-clamp-2">{p.summary}</span>
                 </Link>
               </li>
             ))}
