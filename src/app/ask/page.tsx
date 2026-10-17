@@ -46,6 +46,11 @@ export default async function AskPage({ searchParams }: PageProps<"/ask">) {
           元の予測は変更されず、新しい予測として別に保存されます。
         </p>
       )}
+      <p className="text-sm">
+        <Link href="/methods" className="text-accent underline">
+          どんな占いを使うの？
+        </Link>
+      </p>
       <Card>
         <AskForm parentId={parentId} defaultQuestion={defaultQuestion} />
       </Card>

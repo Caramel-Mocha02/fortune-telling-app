@@ -59,7 +59,8 @@ h2 {
   font-family: var(--font-serif);
 }
 
-input,
+/* チェックボックス・ラジオ・ファイル選択以外の入力欄を幅いっぱいに (レイヤー外の指定は w-auto などより強いので除外する) */
+input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
   @apply w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent;

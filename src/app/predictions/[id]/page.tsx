@@ -79,9 +79,9 @@ export default async function PredictionPage({ params }: PageProps<"/predictions
         <div className="flex flex-wrap gap-2">
           <Badge tone="accent">{QUESTION_CATEGORY_LABELS[p.category as QuestionCategory] ?? p.category}</Badge>
           {p.methods.map((m) => (
-            <Badge key={m}>
-              {METHODS[m].label}
-            </Badge>
+            <Link key={m} href={`/methods#${m}`} title="この占いの説明を見る">
+              <Badge>{METHODS[m].label} ⓘ</Badge>
+            </Link>
           ))}
           {p.status === "closed" && <Badge>答え合わせ完了</Badge>}
         </div>

@@ -79,3 +79,11 @@ export const HandIcon = ({ className }: IconProps) => (
     <path d="M14 11V6.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-.5a5.5 5.5 0 0 1-4.3-2.1L4.5 15a1.5 1.5 0 0 1 2.3-1.9L8 14.5" />
   </svg>
 );
+
+export const BookIcon = ({ className }: IconProps) => (
+  <svg {...base(className)}>
+    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z" />
+    <path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" />
+    <path d="M12 7.5l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2-1.45-1.4 2-.3z" />
+  </svg>
+);

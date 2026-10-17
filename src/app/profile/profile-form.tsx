@@ -5,10 +5,10 @@ import { parsePlaceName, PLACE_DATA_ATTRIBUTION, PREFECTURES } from "@/lib/domai
 import { SubmitButton } from "@/components/submit-button";
 import { ErrorMessage } from "@/components/ui";
 import type { BirthProfileRow } from "@/lib/db/types";
+import { BirthFields } from "./birth-fields";
 
 export function ProfileForm({ initial }: { initial: BirthProfileRow | null }) {
   const [state, action] = useActionState<ProfileState, FormData>(saveProfile, {});
-  const [timeUnknown, setTimeUnknown] = useState(initial ? initial.birth_time === null : false);
   const [place, setPlace] = useState({
     name: initial?.place_name ?? "",
     lat: initial?.latitude?.toString() ?? "",
@@ -33,33 +33,7 @@ export function ProfileForm({ initial }: { initial: BirthProfileRow | null }) {
 
   return (
     <form action={action} className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1">
-          <label htmlFor="birth_date">生年月日</label>
-          <input id="birth_date" name="birth_date" type="date" required defaultValue={initial?.birth_date ?? ""} />
-        </div>
-        <div className="space-y-1">
-          <label htmlFor="birth_time">出生時刻</label>
-          <input
-            id="birth_time"
-            name="birth_time"
-            type="time"
-            disabled={timeUnknown}
-            required={!timeUnknown}
-            defaultValue={initial?.birth_time?.slice(0, 5) ?? ""}
-          />
-          <label className="flex items-center gap-2 font-normal text-muted">
-            <input
-              type="checkbox"
-              name="time_unknown"
-              className="w-auto"
-              checked={timeUnknown}
-              onChange={(e) => setTimeUnknown(e.target.checked)}
-            />
-            時刻が分からない
-          </label>
-        </div>
-      </div>
+      <BirthFields initialDate={initial?.birth_date ?? null} initialTime={initial?.birth_time ?? null} />
 
       <div className="space-y-2">
         <span className="text-sm font-medium">出生地</span>
@@ -103,14 +77,15 @@ export function ProfileForm({ initial }: { initial: BirthProfileRow | null }) {
         >
           {manual ? "一覧から選ぶ" : "海外で生まれた・緯度経度を直接入力する"}
         </button>
-        <p className="text-xs text-muted">出生時刻と出生地があると、西洋占星術のアセンダント・ハウスを計算できます。</p>
+        <p className="text-xs text-muted">生まれた時刻と場所が分かると、西洋占星術などでより細かく占えます。</p>
         <p className="text-[10px] text-muted">{PLACE_DATA_ATTRIBUTION}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1">
-          <label htmlFor="time_zone">タイムゾーン</label>
+          <label htmlFor="time_zone">生まれた国の時間帯</label>
           <input id="time_zone" name="time_zone" defaultValue={initial?.time_zone ?? "Asia/Tokyo"} required />
+          <p className="text-xs text-muted">日本で生まれた場合は、このまま (Asia/Tokyo) で大丈夫です。</p>
         </div>
         <div className="space-y-1">
           <label htmlFor="gender">性別</label>
@@ -119,7 +94,7 @@ export function ProfileForm({ initial }: { initial: BirthProfileRow | null }) {
             <option value="female">女性</option>
             <option value="male">男性</option>
           </select>
-          <p className="text-xs text-muted">四柱推命の大運 (10年ごとの運気) の向きの計算にのみ使います。</p>
+          <p className="text-xs text-muted">10年ごとの運気の流れを計算するのに使います (四柱推命・紫微斗数)。</p>
         </div>
       </div>
 

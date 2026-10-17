@@ -8,7 +8,7 @@ import { loadKpiInput } from "@/lib/db/kpi-input";
 import { computeKpis } from "@/lib/analytics/kpi";
 import { stalePredictions } from "@/lib/prediction/reminders";
 import { MenuCards } from "@/components/menu-cards";
-import { MAIN_TABS, REFLECT_PAGES } from "@/lib/navigation";
+import { MAIN_TABS, METHODS_PAGE, REFLECT_PAGES } from "@/lib/navigation";
 
 export default async function HomePage() {
   const { supabase } = await requireUser();
@@ -26,7 +26,7 @@ export default async function HomePage() {
         </Card>
         <section className="space-y-3">
           <h2 className="font-bold">このアプリでできること</h2>
-          <MenuCards items={[...MAIN_TABS.filter((t) => t.href !== "/"), ...REFLECT_PAGES]} />
+          <MenuCards items={[...MAIN_TABS.filter((t) => t.href !== "/"), ...REFLECT_PAGES, METHODS_PAGE]} />
         </section>
       </div>
     );
@@ -112,7 +112,7 @@ export default async function HomePage() {
 
       <section className="space-y-3">
         <h2 className="font-bold">このアプリでできること</h2>
-        <MenuCards items={[...MAIN_TABS.filter((t) => t.href !== "/"), ...REFLECT_PAGES]} />
+        <MenuCards items={[...MAIN_TABS.filter((t) => t.href !== "/"), ...REFLECT_PAGES, METHODS_PAGE]} />
       </section>
 
       {recent.length > 0 && (

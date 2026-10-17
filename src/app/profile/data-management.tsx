@@ -11,7 +11,7 @@ export function DataManagement() {
       <div className="space-y-2">
         <h3 className="font-medium">データの書き出し</h3>
         <p className="text-sm text-muted">
-          プロフィール・質問・予測 (Snapshot を含む)・ライフログ・答え合わせ・評価・手相の観察結果などを JSON ファイルでダウンロードします。手相画像そのものは含みません。
+          プロフィール・質問・占いの結果・記録した出来事・答え合わせ・手相の読み取り結果などを、ひとつのファイル (JSON 形式) にまとめてダウンロードします。手相の写真そのものは含みません。
         </p>
         <a href="/api/export" className={buttonClass("secondary")} download>
           データを書き出す
@@ -21,7 +21,7 @@ export function DataManagement() {
       <form action={action} className="space-y-2 rounded-lg border border-red-300 p-4 dark:border-red-900">
         <h3 className="font-medium text-red-700 dark:text-red-300">アカウントの削除</h3>
         <p className="text-sm text-muted">
-          アカウントと、予測・ライフログ・答え合わせ・手相画像を含むすべてのデータを削除します。<b>元に戻せません。</b>
+          アカウントと、占いの結果・記録した出来事・答え合わせ・手相の写真を含むすべてのデータを削除します。<b>元に戻せません。</b>
           必要なら先にデータを書き出してください。
         </p>
         <label htmlFor="confirm" className="block text-sm font-normal">

@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import {
+  BookIcon,
   CalendarIcon,
   CrystalBallIcon,
   HandIcon,
@@ -49,3 +50,10 @@ export function activeTab(pathname: string): string {
   const hit = MAIN_TABS.filter((t) => t.href !== "/").find((t) => pathname.startsWith(t.href));
   return hit?.href ?? "/";
 }
+
+export const METHODS_PAGE: NavItem = {
+  href: "/methods",
+  label: "占いの種類",
+  icon: BookIcon,
+  description: "このアプリで使う8つの占いが、それぞれどんな占いで、何が得意かを紹介します。",
+};

@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
-const PUBLIC_PATHS = ["/login", "/auth", "/setup"];
+const PUBLIC_PATHS = ["/login", "/auth", "/setup", "/methods"];
 
 /** リクエストごとにセッションを更新し、未ログインならログイン画面へ送る (楽観的チェック)。 */
 export async function proxy(request: NextRequest) {
