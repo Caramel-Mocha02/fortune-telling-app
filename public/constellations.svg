@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" fill="none">
+  <!-- 背景用の星座の線画 (北斗七星・オリオン座・カシオペヤ座を簡略化) -->
+  <g stroke="#c9bdf7" stroke-width="1" stroke-opacity=".55">
+    <polyline points="60,140 120,120 175,135 220,170 300,160 320,220 255,235 220,170" />
+    <polyline points="380,330 420,380 470,372 515,320" />
+    <polyline points="420,380 430,440 465,445 470,372" />
+    <polyline points="430,440 395,505 M465,445 500,510" />
+    <polyline points="430,410 448,408 466,406" />
+    <polyline points="90,430 130,470 165,440 205,480 240,445" />
+  </g>
+  <g fill="#f6e7b8">
+    <circle cx="60" cy="140" r="3" /><circle cx="120" cy="120" r="2.5" /><circle cx="175" cy="135" r="2.5" />
+    <circle cx="220" cy="170" r="3" /><circle cx="300" cy="160" r="3" /><circle cx="320" cy="220" r="2.5" /><circle cx="255" cy="235" r="2.5" />
+    <circle cx="380" cy="330" r="3.5" /><circle cx="515" cy="320" r="3" /><circle cx="420" cy="380" r="2.5" /><circle cx="470" cy="372" r="2.5" />
+    <circle cx="430" cy="410" r="2" /><circle cx="448" cy="408" r="2" /><circle cx="466" cy="406" r="2" />
+    <circle cx="430" cy="440" r="2.5" /><circle cx="465" cy="445" r="2.5" /><circle cx="395" cy="505" r="3.5" /><circle cx="500" cy="510" r="3" />
+    <circle cx="90" cy="430" r="3" /><circle cx="130" cy="470" r="2.5" /><circle cx="165" cy="440" r="3" /><circle cx="205" cy="480" r="2.5" /><circle cx="240" cy="445" r="3" />
+  </g>
+</svg>

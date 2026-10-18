@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ja" className={`${zenMaru.variable} ${shippori.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col font-sans">
+    <html lang="ja" className={`dark ${zenMaru.variable} ${shippori.variable} h-full antialiased`}>
+      <body className="isolate flex min-h-full flex-col font-sans">
         <Nav />
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">{children}</main>
         <footer className="mx-auto w-full max-w-3xl px-4 pt-6 pb-28 text-xs text-muted sm:pb-6">

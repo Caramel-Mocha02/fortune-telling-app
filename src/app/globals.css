@@ -1,38 +1,23 @@
 @import "tailwindcss";
 
+/* `dark:` 指定を常に有効にする (<html class="dark">)。アプリ全体を夜空の配色に統一する */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* 夜空と金色をイメージした配色 */
 :root {
-  --background: #f7f4fb;
-  --surface: #ffffff;
-  --foreground: #221d3a;
-  --muted: #6c6684;
-  --border: #e4dff0;
-  --accent: #5b45b0;
-  --accent-soft: #eee9fb;
-  --gold: #c9a24a;
-  --logo-bg: #1e1b4b;
-  --header-from: #1e1b4b;
-  --header-to: #3b2a78;
+  color-scheme: dark;
+  --background: #0c0a1f;
+  --surface: rgb(27 23 62 / 0.94);
+  --foreground: #ece8fb;
+  --muted: #a7a1c6;
+  --border: #342e66;
+  --accent: #b3a2f5;
+  --accent-soft: #2c2560;
+  --gold: #e8c56b;
+  --logo-bg: #2a2357;
+  --header-from: #0a0919;
+  --header-to: #241c55;
   --header-fg: #f3eefe;
-  --sky: radial-gradient(circle at 15% 0%, #ebe4fb 0, transparent 45%), radial-gradient(circle at 90% 10%, #f6ecd6 0, transparent 35%);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f0d24;
-    --surface: #18153a;
-    --foreground: #ece8fb;
-    --muted: #a39dc2;
-    --border: #2c2758;
-    --accent: #b3a2f5;
-    --accent-soft: #2a2357;
-    --gold: #e8c56b;
-    --logo-bg: #2a2357;
-    --header-from: #0b0a1d;
-    --header-to: #241c55;
-    --header-fg: #f3eefe;
-    --sky: radial-gradient(circle at 15% 0%, #241c55 0, transparent 45%), radial-gradient(circle at 90% 10%, #2a2050 0, transparent 35%);
-  }
 }
 
 @theme inline {
@@ -48,10 +33,67 @@
   --font-serif: var(--font-shippori), serif;
 }
 
+html {
+  background: var(--background);
+}
+
+/* 背景: 星雲と月明かり + 星座の線画 + 星空 */
 body {
-  background: var(--sky), var(--background);
-  background-attachment: fixed;
+  position: relative;
   color: var(--foreground);
+  background:
+    radial-gradient(circle at calc(100% - 72px) 120px, #fff8e2 0 22px, rgb(255 244 210 / 0.35) 23px, rgb(246 231 184 / 0.12) 60px, transparent 150px),
+    radial-gradient(ellipse 70% 50% at 10% 20%, rgb(91 69 176 / 0.35) 0%, transparent 65%),
+    radial-gradient(ellipse 80% 60% at 70% 90%, rgb(46 74 160 / 0.28) 0%, transparent 65%),
+    linear-gradient(180deg, #0c0a1f 0%, #150f35 55%, #0c0a1f 100%);
+  background-attachment: fixed;
+}
+
+/* 細かい星 (固定) と、ゆっくりまたたく星 */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+body::before {
+  background-image:
+    url("/constellations.svg"),
+    radial-gradient(1px 1px at 20px 30px, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 120px 80px, #e6e0ff 50%, transparent 51%),
+    radial-gradient(1px 1px at 200px 160px, #fff 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 60px 200px, #f6e7b8 50%, transparent 51%),
+    radial-gradient(1px 1px at 160px 230px, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 250px 40px, #d9cff9 50%, transparent 51%);
+  background-size: min(560px, 80vw) min(560px, 80vw), 270px 270px, 270px 270px, 270px 270px, 270px 270px, 270px 270px, 270px 270px;
+  background-position: right -60px bottom -40px, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+  background-repeat: no-repeat, repeat, repeat, repeat, repeat, repeat, repeat;
+  opacity: 0.55;
+}
+body::after {
+  background-image:
+    radial-gradient(1.8px 1.8px at 80px 120px, #fff 50%, transparent 51%),
+    radial-gradient(2px 2px at 330px 60px, #f6e7b8 50%, transparent 51%),
+    radial-gradient(1.6px 1.6px at 250px 300px, #fff 50%, transparent 51%),
+    radial-gradient(2.2px 2.2px at 30px 380px, #e6e0ff 50%, transparent 51%);
+  background-size: 420px 420px;
+  animation: sky-twinkle 5s ease-in-out infinite alternate;
+}
+@keyframes sky-twinkle {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::after {
+    animation: none;
+    opacity: 0.7;
+  }
 }
 
 h1,
